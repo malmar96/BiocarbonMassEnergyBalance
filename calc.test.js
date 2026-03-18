@@ -167,6 +167,105 @@ console.log('\n8. RC solve mode');
 }
 
 // ---------------------------------------------------------------------------
+// 9. Infeasibility remedy Option A: rc* is in [0, 1] and gives T_TO = Tto_min
+// ---------------------------------------------------------------------------
+console.log('\n9. Option A remedy (rc* solve)');
+{
+  const { solveRcForTtoMin } = require('./calc.js');
+
+  // Rice hulls at 30% MC — should be infeasible but Option A feasible
+  const riceHulls30 = {
+    ...BASE, mc: 0.30, fw: 1000/0.70,
+    xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHVbm: 15000,
+  };
+  const Tto_natural = solveTto(riceHulls30, riceHulls30.rc);
+  if (Tto_natural < riceHulls30.Tto_min) {
+    const rc_star = solveRcForTtoMin(riceHulls30, riceHulls30.Tto_min);
+    assert('rc* is in [0, 1] for rice hulls 30% MC', rc_star >= 0 && rc_star <= 1,
+      `rc* = ${rc_star?.toFixed(4)}`);
+    // Verify solveTto at rc* gives exactly Tto_min
+    const Tto_check = solveTto(riceHulls30, rc_star);
+    assertClose('solveTto(rc*) = Tto_min', Tto_check, riceHulls30.Tto_min, 1.0);
+    // Energy balance closes at rc*
+    const r = calcAt(riceHulls30, rc_star, Tto_check);
+    assertClose('T23 closes at rc*', r.T23, 0, 0.01);
+  } else {
+    // If feasible at this moisture, skip with a note
+    console.log('  SKIP  Rice hulls 30% MC is feasible — adjust test inputs if Tto_min changes');
+  }
+
+  // Activated sludge at 40% MC — Option A should be infeasible (rc* < 0)
+  const sludge40 = {
+    ...BASE, mc: 0.40, fw: 1000/0.60,
+    xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHVbm: 13500,
+  };
+  const rc_star_sludge = solveRcForTtoMin(sludge40, sludge40.Tto_min);
+  assert('rc* < 0 for sludge 40% MC (Option A not feasible)',
+    rc_star_sludge < 0, `rc* = ${rc_star_sludge?.toFixed(4)}`);
+}
+
+// ---------------------------------------------------------------------------
+// 10. Shomate Cp values — verified against JANAF coefficients directly
+// ---------------------------------------------------------------------------
+console.log('\n10. Shomate Cp correctness');
+{
+  const { Cp_N2, Cp_CO2, Cp_H2O_g, Cp_O2, Cp_air_mix } = require('./calc.js');
+
+  // Reference values computed directly from JANAF Shomate: Cp = (A+Bt+Ct²+Dt³+E/t²)/MW
+  // where t = T(K)/1000. These are exact for our implementation.
+  assertClose('Cp_N2   at  25°C', Cp_N2(25),       0.99497, 0.00005);
+  assertClose('Cp_N2   at 300°C', Cp_N2(300),      1.07263, 0.00005);
+  assertClose('Cp_N2   at 700°C', Cp_N2(700),      1.15366, 0.00005);
+
+  assertClose('Cp_CO2  at 100°C', Cp_CO2(100),     0.91640, 0.00005);
+  assertClose('Cp_CO2  at 500°C', Cp_CO2(500),     1.15816, 0.00005);
+
+  assertClose('Cp_H2Og at 200°C', Cp_H2O_g(200),  1.93972, 0.00005);
+  assertClose('Cp_H2Og at 600°C', Cp_H2O_g(600),  2.20137, 0.00005);
+
+  // O2 crosses the 700K branch at ~427°C — test both sides
+  assertClose('Cp_O2   at 200°C (low branch)',  Cp_O2(200),  0.96262, 0.00005);
+  assertClose('Cp_O2   at 700°C (high branch)', Cp_O2(700),  1.08554, 0.00005);
+  // Check continuity at branch point (~427°C = 700K)
+  const Cp_just_below = Cp_O2(426);
+  const Cp_just_above = Cp_O2(428);
+  assert('Cp_O2 branch continuity (< 0.005 kJ/kgK jump at 700K)',
+    Math.abs(Cp_just_above - Cp_just_below) < 0.005,
+    `below=${Cp_just_below.toFixed(4)}, above=${Cp_just_above.toFixed(4)}`);
+
+  // Air mix: 23.2% O2 + 76.8% N2 by mass
+  assertClose('Cp_air  at  25°C', Cp_air_mix(25),  0.97717, 0.00005);
+  assertClose('Cp_air  at 300°C', Cp_air_mix(300), 1.05461, 0.00005);
+  // Verify formula: should equal weighted sum
+  const Cp_air_check = 0.232 * Cp_O2(500) + 0.768 * Cp_N2(500);
+  assertClose('Cp_air is correct weighted sum at 500°C', Cp_air_mix(500), Cp_air_check, 0.00001);
+}
+
+// ---------------------------------------------------------------------------
+// 11. Exhaust composition fractions sum to 1
+// ---------------------------------------------------------------------------
+console.log('\n11. Exhaust composition fractions sum to 1');
+{
+  const cases = [
+    { name: 'Hardwood 13% MC',   inp: BASE },
+    { name: 'Hardwood 40% MC',   inp: {...BASE, mc: 0.40, fw: 1000/0.60} },
+    { name: 'Rice hulls 13% MC', inp: {...BASE, xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHVbm: 15000} },
+    { name: 'Sludge 13% MC',     inp: {...BASE, xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHVbm: 13500} },
+  ];
+  cases.forEach(({ name, inp }) => {
+    const Tto = solveTto(inp, inp.rc);
+    const r   = calcAt(inp, inp.rc, Tto);
+    // Wet exhaust mass fractions: CO2 + H2O + N2 + O2_excess
+    const sumFrac = r.xCO2 + r.xH2O + r.xN2 + r.xO2;
+    assertClose(`Exhaust fractions sum to 1 (${name})`, sumFrac, 1.0, 0.0001);
+    // All fractions positive
+    assert(`All exhaust fractions > 0 (${name})`,
+      r.xCO2 > 0 && r.xH2O > 0 && r.xN2 > 0 && r.xO2 > 0,
+      `CO2=${r.xCO2?.toFixed(3)} H2O=${r.xH2O?.toFixed(3)} N2=${r.xN2?.toFixed(3)} O2=${r.xO2?.toFixed(3)}`);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 console.log(`\n${'='.repeat(50)}`);
