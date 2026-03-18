@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pyrolysis Mass & Energy Balance</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f0e; --bg2: #141716; --bg3: #1c1f1d; --bg4: #232724;
+    --border: #2e3430; --border2: #3a4038;
+    --green: #4ade80; --green-dim: #22c55e; --green-muted: #166534;
+    --amber: #fbbf24; --amber-dim: #d97706; --red: #f87171; --blue: #60a5fa;
+    --text: #e2e8e0; --text2: #9ca89a; --text3: #5a6358;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: baseline; gap: 16px; }
+  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--green); text-transform: uppercase; }
+  header span { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; }
+
+  .layout { display: grid; grid-template-columns: 308px 1fr; min-height: calc(100vh - 57px); }
+
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 20px; overflow-y: auto; }
+
+  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+  .input-group { margin-bottom: 20px; }
+  .input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .input-row label { flex: 1; font-size: 12px; color: var(--text2); font-family: var(--mono); }
+  .input-row .unit { font-size: 11px; color: var(--text3); font-family: var(--mono); width: 46px; text-align: right; }
+  input[type="number"] { width: 78px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 3px; color: var(--amber); font-family: var(--mono); font-size: 12px; padding: 4px 7px; text-align: right; outline: none; transition: border-color 0.15s; }
+  input[type="number"]:focus { border-color: var(--amber-dim); }
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .comp-check { font-family: var(--mono); font-size: 11px; text-align: right; margin-top: 4px; padding: 4px 8px; border-radius: 3px; }
+  .comp-check.ok   { color: var(--green); background: rgba(74,222,128,0.08); }
+  .comp-check.warn { color: var(--red);   background: rgba(248,113,113,0.08); }
+  .note { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: -4px; margin-bottom: 8px; padding-left: 2px; line-height: 1.4; }
+
+  .summary-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .kpi { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; }
+  .kpi-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .kpi-value { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--green); }
+  .kpi-unit  { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .card-header { background: var(--bg4); border-bottom: 1px solid var(--border); padding: 9px 14px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+  .card-header .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .card-header .dot.amber { background: var(--amber); }
+  .card-header .dot.blue  { background: var(--blue); }
+  .card-header .dot.red   { background: var(--red); }
+  .card-body { padding: 14px; }
+
+  .dt { width: 100%; border-collapse: collapse; }
+  .dt tr { border-bottom: 1px solid var(--border); }
+  .dt tr:last-child { border-bottom: none; }
+  .dt td { padding: 6px 4px; font-family: var(--mono); font-size: 12px; }
+  .dt td:first-child { color: var(--text2); }
+  .dt td:last-child  { color: var(--text); text-align: right; }
+  .dt td.u { color: var(--text3); width: 44px; text-align: right; padding-left: 6px; }
+  .dt .hl  td:last-child { color: var(--green); font-weight: 600; }
+  .dt .hla td:last-child { color: var(--amber); font-weight: 600; }
+  .dt .sub td { border-top: 1px solid var(--border2); }
+  .dt .sub td:last-child { color: var(--blue); }
+
+  .cascade { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+  .cascade-row { display: flex; align-items: center; gap: 10px; }
+  .cascade-lbl { font-family: var(--mono); font-size: 11px; color: var(--text2); width: 230px; flex-shrink: 0; }
+  .cascade-bar-wrap { flex: 1; height: 18px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+  .cascade-bar { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+  .cascade-val { font-family: var(--mono); font-size: 11px; color: var(--text2); width: 80px; text-align: right; flex-shrink: 0; }
+
+  .st { width: 100%; border-collapse: collapse; }
+  .st th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border2); }
+  .st th:first-child { text-align: left; }
+  .st td { font-family: var(--mono); font-size: 12px; padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: right; color: var(--text2); }
+  .st td:first-child { color: var(--text); text-align: left; }
+  .st tr:last-child td { border-bottom: none; }
+  .st .ar td { color: var(--amber) !important; background: rgba(251,191,36,0.05); }
+
+  .bcheck { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 3px; margin-top: 8px; font-family: var(--mono); font-size: 12px; }
+  .bcheck.ok   { background: rgba(74,222,128,0.07); border: 1px solid var(--green-muted); color: var(--green); }
+  .bcheck.warn { background: rgba(248,113,113,0.07); border: 1px solid #7f1d1d; color: var(--red); }
+
+  .tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 9px 18px; cursor: pointer; color: var(--text3); border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none; }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .tc { display: none; }
+  .tc.active { display: block; }
+
+  .status-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border); padding: 6px 32px; display: flex; align-items: center; gap: 24px; font-family: var(--mono); font-size: 11px; color: var(--text3); z-index: 10; }
+  .ok   { color: var(--green); }
+  .warn { color: var(--amber); }
+  .mb16 { margin-bottom: 16px; }
+
+  .solve-toggle { display: flex; border: 1px solid var(--border2); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+  .solve-btn { flex: 1; padding: 7px 4px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; cursor: pointer; background: var(--bg3); color: var(--text3); border: none; outline: none; transition: all 0.15s; user-select: none; }
+  .solve-btn:first-child { border-right: 1px solid var(--border2); }
+  .solve-btn.active { background: var(--green-muted); color: var(--green); }
+  .solve-btn:hover:not(.active) { color: var(--text2); background: var(--bg4); }
+  .solved-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--green); width: 78px; text-align: right; display: inline-block; }
+  .input-row.solved-mode input { opacity: 0.35; pointer-events: none; }
+  select.feedstock-select {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 3px; color: var(--amber); font-family: var(--mono);
+    font-size: 12px; padding: 5px 7px; outline: none; margin-bottom: 10px;
+    cursor: pointer; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6358'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+  }
+  .feedstock-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); margin: -4px 0 10px; line-height: 1.5; padding: 5px 7px; background: var(--bg4); border-radius: 3px; border-left: 2px solid var(--border2); }
+  .input-row.dimmed input { opacity: 0.45; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pyrolysis Mass &amp; Energy Balance</h1>
+  <span>Pyrolysis + Thermal Oxidizer System // Live Calculator</span>
+</header>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="section-label">Feedstock</div>
+  <div class="input-group">
+    <div class="input-row"><label>Wet feed rate</label><input type="number" id="i_fw" value="1150" step="10"><span class="unit">kg/h</span></div>
+    <div class="input-row"><label>Moisture fraction</label><input type="number" id="i_mc" value="0.13" step="0.01" min="0" max="0.999"><span class="unit">–</span></div>
+    <div id="mc-error" style="display:none;font-family:var(--mono);font-size:11px;color:var(--red);background:rgba(248,113,113,0.08);border-radius:3px;padding:4px 8px;margin-top:-4px;margin-bottom:6px;"></div>
+  </div>
+
+  <div class="section-label">Biomass Type</div>
+  <div class="input-group">
+    <select class="feedstock-select" id="i_feedstock" onchange="setFeedstock(this.value)">
+      <option value="hardwood">Hardwood</option>
+      <option value="softwood">Softwood</option>
+      <option value="rice_hulls">Rice hulls</option>
+      <option value="act_sludge">Activated sludge</option>
+      <option value="custom">Custom</option>
+    </select>
+    <div class="feedstock-meta" id="feedstock-meta">ISO 17225 typical values — C49%, H6.2%, O44%</div>
+    <div class="input-row dimmed" id="row-xash"><label>Ash fraction (dry)</label><input type="number" id="i_xash" value="0.003" step="0.001" min="0" max="0.6"><span class="unit">–</span></div>
+    <div class="note" id="ash-note" style="margin-top:-4px;margin-bottom:8px;">≤1% — treated as zero</div>
+    <div class="input-row dimmed" id="row-xC"><label>C (ash-free dry basis)</label><input type="number" id="i_xC" value="0.492" step="0.001"><span class="unit">–</span></div>
+    <div class="input-row dimmed" id="row-xH"><label>H (ash-free dry basis)</label><input type="number" id="i_xH" value="0.062" step="0.001"><span class="unit">–</span></div>
+    <div class="input-row dimmed" id="row-xO"><label>O (ash-free dry basis)</label><input type="number" id="i_xO" value="0.446" step="0.001"><span class="unit">–</span></div>
+    <div id="cc" class="comp-check ok">C + H + O = 1.000 ✓</div>
+  </div>
+
+  <div class="section-label">Solve For</div>
+  <div class="solve-toggle">
+    <div class="solve-btn active" id="btn-tto"  onclick="setSolveMode('tto')">T_TO (°C)</div>
+    <div class="solve-btn"        id="btn-rc"   onclick="setSolveMode('rc')">Conv. Rate</div>
+  </div>
+
+  <div class="section-label">Biochar</div>
+  <div class="input-group">
+    <div class="input-row" id="row-rc">
+      <label>Conversion rate</label>
+      <input type="number" id="i_rc" value="0.25" step="0.01">
+      <span class="unit">–</span>
+    </div>
+    <div class="input-row"><label>Carbon % in biochar</label><input type="number" id="i_xCbc" value="0.70" step="0.01"><span class="unit">–</span></div>
+    <div class="input-row"><label>Molar H:C ratio</label><input type="number" id="i_rHC" value="0.70" step="0.05"><span class="unit">–</span></div>
+    <div class="input-row"><label>HHV biochar (ash-free)</label><input type="number" id="i_HHVbc" value="30103.88" step="100"><span class="unit">kJ/kg</span></div>
+  </div>
+
+  <div class="section-label">Combustion</div>
+  <div class="input-group">
+    <div class="input-row"><label>Excess O₂ (dry exhaust mol frac)</label><input type="number" id="i_xs" value="0.05" step="0.005"><span class="unit">–</span></div>
+  </div>
+
+  <div class="section-label">Thermophysical Properties</div>
+  <div class="input-group">
+    <div class="input-row dimmed" id="row-HHVbm"><label>HHV biomass (whole-sample dry)</label><input type="number" id="i_HHVbm" value="19000" step="100"><span class="unit">kJ/kg</span></div>
+    <div class="input-row"><label>Cp dry biomass</label><input type="number" id="i_cpBM" value="1.50" step="0.05"><span class="unit">kJ/kgK</span></div>
+    <div class="input-row"><label>Cp syngas</label><input type="number" id="i_cpSG" value="2.10" step="0.05"><span class="unit">kJ/kgK</span></div>
+    <div class="input-row"><label>Pyrolysis ΔH_rxn</label><input type="number" id="i_dH" value="300" step="10"><span class="unit">kJ/kg</span></div>
+  </div>
+
+  <div class="section-label">Temperatures</div>
+  <div class="input-group">
+    <div class="input-row"><label>T_ref (inlet)</label><input type="number" id="i_Tr" value="25" step="5"><span class="unit">°C</span></div>
+    <div class="input-row"><label>T_reactor</label><input type="number" id="i_Treac" value="500" step="10"><span class="unit">°C</span></div>
+    <div class="input-row"><label>T_TO minimum (combustion floor)</label><input type="number" id="i_Tto_min" value="650" step="10"><span class="unit">°C</span></div>
+    <div class="input-row" id="row-tto">
+      <label>T_TO (thermal oxidizer)</label>
+      <span id="i_Tto_display" class="solved-val">—</span>
+      <span class="unit">°C</span>
+    </div>
+    <div id="solve-note" class="note">T_TO solved to close U1 = W15.</div>
+  </div>
+
+  <div id="infeasible-box" style="display:none;margin:12px 0 0;border-radius:4px;border:1px solid #d97706;overflow:hidden;">
+    <div style="background:rgba(251,191,36,0.1);padding:8px 12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);">⚠ System Cannot Self-Sustain</div>
+    <div id="infeasible-reason" style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.5;border-bottom:1px solid #d97706;"></div>
+    <div style="padding:8px 12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;">Choose a remedy:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #2e3430;">
+      <div id="opt-a-btn" onclick="setRemedy('rc')" style="padding:10px 12px;cursor:pointer;border-right:1px solid #2e3430;transition:background .15s;">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Option A</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:6px;">Reduce conversion rate</div>
+        <div id="opt-a-val" style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);">—</div>
+      </div>
+      <div id="opt-b-btn" onclick="setRemedy('supp')" style="padding:10px 12px;cursor:pointer;transition:background .15s;">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;">Option B</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:6px;">Add supplemental heat</div>
+        <div id="opt-b-val" style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);">—</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main style="padding: 24px 28px 60px; overflow-y: auto;">
+  <div class="summary-bar">
+    <div class="kpi"><div class="kpi-label">Dry Feed</div><div class="kpi-value" id="k_dry">—</div><div class="kpi-unit">kg/h</div></div>
+    <div class="kpi"><div class="kpi-label">Biochar Output</div><div class="kpi-value" id="k_bc">—</div><div class="kpi-unit">kg/h</div></div>
+    <div class="kpi"><div class="kpi-label">Air Intake</div><div class="kpi-value" id="k_air">—</div><div class="kpi-unit">kg/h</div></div>
+    <div class="kpi"><div class="kpi-label">Total Exhaust Heat</div><div class="kpi-value" id="k_ex">—</div><div class="kpi-unit">kW</div></div>
+    <div class="kpi"><div class="kpi-label">Recoverable Heat</div><div class="kpi-value" id="k_rec">—</div><div class="kpi-unit">kW</div></div>
+    <div class="kpi" id="kpi_supp" style="display:none;border-color:#d97706;">
+      <div class="kpi-label" id="k_supp_label" style="color:var(--amber)">Suppl. Heat</div>
+      <div class="kpi-value" id="k_supp" style="color:var(--amber)">—</div>
+      <div class="kpi-unit" id="k_supp_unit">kW</div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="T('mass')">Mass Balance</div>
+    <div class="tab" onclick="T('energy')">Energy Balance</div>
+    <div class="tab" onclick="T('exhaust')">Exhaust Recovery</div>
+    <div class="tab" onclick="T('sens')">Moisture Sensitivity</div>
+    <div class="tab" onclick="T('flows')">Flow Charts</div>
+    <div class="tab" onclick="T('sources')">Sources</div>
+    <div class="tab" onclick="T('scenarios')">Scenarios</div>
+  </div>
+
+  <!-- MASS -->
+  <div class="tc active" id="tab-mass">
+    <div class="three-col">
+      <div class="card"><div class="card-header"><span class="dot"></span>Feed</div><div class="card-body">
+        <table class="dt">
+          <tr><td>Wet feed in</td><td id="m_fw">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;→ Dry biomass</td><td id="m_dry">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;&nbsp;&nbsp;→ Ash (inert)</td><td id="m_ash_disp">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;&nbsp;&nbsp;→ Organic</td><td id="m_org_disp">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;→ Feed water</td><td id="m_wat">—</td><td class="u">kg/h</td></tr>
+          <tr><td>Air intake</td><td id="m_air">—</td><td class="u">kg/h</td></tr>
+          <tr class="sub"><td>Total inputs</td><td id="m_in">—</td><td class="u">kg/h</td></tr>
+        </table>
+      </div></div>
+      <div class="card"><div class="card-header"><span class="dot amber"></span>Biochar</div><div class="card-body">
+        <table class="dt">
+          <tr class="hl"><td>Biochar output (total)</td><td id="m_bc">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;Organic char fraction</td><td id="m_bc_org">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;Ash carried out</td><td id="m_bc_ash">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;C in organic char</td><td id="m_Cbc">—</td><td class="u">kg/h</td></tr>
+          <tr class="sub"><td>Carbon sequestered</td><td id="m_Cseq">—</td><td class="u">%</td></tr>
+        </table>
+      </div></div>
+      <div class="card"><div class="card-header"><span class="dot blue"></span>Wet Exhaust</div><div class="card-body">
+        <table class="dt">
+          <tr class="hl"><td>Total wet exhaust</td><td id="m_exw">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;CO₂</td><td id="m_CO2">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;H₂O (comb + feed)</td><td id="m_H2O">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;N₂</td><td id="m_N2">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;Excess O₂</td><td id="m_O2x">—</td><td class="u">kg/h</td></tr>
+        </table>
+      </div></div>
+    </div>
+    <div class="two-col">
+      <div class="card"><div class="card-header"><span class="dot"></span>Syngas (Volatile Fraction)</div><div class="card-body">
+        <table class="dt">
+          <tr class="hl"><td>Syngas flow</td><td id="m_sg">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;C to gas phase</td><td id="m_Csg">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;H to gas phase</td><td id="m_Hsg">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;O to gas phase</td><td id="m_Osg">—</td><td class="u">kg/h</td></tr>
+          <tr><td>&nbsp;Moisture fraction in syngas</td><td id="m_sgmc">—</td><td class="u">–</td></tr>
+        </table>
+      </div></div>
+      <div class="card"><div class="card-header"><span class="dot blue"></span>Combustion Air</div><div class="card-body">
+        <table class="dt">
+          <tr><td>O₂ gross for combustion</td><td id="m_O2g">—</td><td class="u">kg/h</td></tr>
+          <tr><td>O from biomass (credited)</td><td id="m_Ocr">—</td><td class="u">kg/h</td></tr>
+          <tr><td>Net O₂ from air (stoich)</td><td id="m_O2n">—</td><td class="u">kg/h</td></tr>
+          <tr><td>Excess O₂ in exhaust</td><td id="m_O2e">—</td><td class="u">kg/h</td></tr>
+          <tr class="sub"><td>Total air (N₂ + all O₂)</td><td id="m_air2">—</td><td class="u">kg/h</td></tr>
+        </table>
+      </div></div>
+    </div>
+    <div id="mbc"></div>
+  </div>
+
+  <!-- ENERGY -->
+  <div class="tc" id="tab-energy">
+    <div class="two-col">
+      <div class="card"><div class="card-header"><span class="dot"></span>Heat Source</div><div class="card-body">
+        <table class="dt">
+          <tr class="hl"><td>Chemical energy — biomass (HHV dry) [T1]</td><td id="e_src">—</td><td class="u">kW</td></tr>
+          <tr id="e_supp_row" style="display:none;"><td style="color:var(--amber)">Supplemental heat [Q_supp]</td><td id="e_supp" style="color:var(--amber)">—</td><td class="u">kW</td></tr>
+          <tr class="sub"><td>Total source</td><td id="e_src_total">—</td><td class="u">kW</td></tr>
+        </table>
+        <div style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text3);">T1 = HHV_bm × ṁ_dry / 3600</div>
+      </div></div>
+      <div class="card"><div class="card-header"><span class="dot amber"></span>All Heat Sinks [T5–T19]</div><div class="card-body">
+        <table class="dt">
+          <tr><td style="color:var(--text3);font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;" colspan="3">Process sinks</td></tr>
+          <tr><td>T5 — Sensible water to 100°C</td><td id="e_T5">—</td><td class="u">kW</td></tr>
+          <tr><td>T6 — Latent heat vaporization</td><td id="e_T6">—</td><td class="u">kW</td></tr>
+          <tr><td>T7 — Sensible steam to T_reac</td><td id="e_T7">—</td><td class="u">kW</td></tr>
+          <tr><td>T9 — Heat dry biomass to T_reac</td><td id="e_T9">—</td><td class="u">kW</td></tr>
+          <tr><td>T10 — Pyrolysis reaction</td><td id="e_T10">—</td><td class="u">kW</td></tr>
+          <tr><td>T11 — Biochar chemical energy (HHV, ash-free)</td><td id="e_T11">—</td><td class="u">kW</td></tr>
+          <tr><td>T12 — Sensible heat biochar out</td><td id="e_T12">—</td><td class="u">kW</td></tr>
+          <tr><td>T13 — Syngas sensible (T_reac → T_TO)</td><td id="e_T13">—</td><td class="u">kW</td></tr>
+          <tr><td>T14 — Air sensible (T_ref → T_TO)</td><td id="e_T14">—</td><td class="u">kW</td></tr>
+          <tr style="border-top:1px solid var(--border2);"><td style="color:var(--text3);font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;" colspan="3">Exhaust heat sinks</td></tr>
+          <tr><td>T16 — Wet exhaust sensible (T_TO → 100°C)</td><td id="e_T16">—</td><td class="u">kW</td></tr>
+          <tr><td>T17 — Latent heat of all water condensation</td><td id="e_T17">—</td><td class="u">kW</td></tr>
+          <tr><td>T18 — Condensed water sensible (100°C → T_ref)</td><td id="e_T18">—</td><td class="u">kW</td></tr>
+          <tr><td>T19 — Dry exhaust gas sensible (100°C → T_ref)</td><td id="e_T19">—</td><td class="u">kW</td></tr>
+          <tr class="sub"><td>T21 — Total sinks</td><td id="e_T21">—</td><td class="u">kW</td></tr>
+        </table>
+      </div></div>
+    </div>
+    <div class="card mb16"><div class="card-header"><span class="dot blue"></span>Closing Term T23 = T1 − T21 (solved to zero)</div><div class="card-body">
+      <table class="dt"><tr class="hl"><td>T23 — Closing term (should be 0 when solved)</td><td id="e_T23">—</td><td class="u">kW</td></tr></table>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px;">T1 = T21 &nbsp;→&nbsp; Biomass HHV in = sum of all sinks including exhaust heat</div>
+        <div id="ebc" class="bcheck ok">—</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- EXHAUST RECOVERY -->
+  <div class="tc" id="tab-exhaust">
+    <div class="card mb16"><div class="card-header"><span class="dot blue"></span>Exhaust Heat Cascade — T_TO → T_ref</div><div class="card-body">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:16px;">Above 150°C = recoverable sensible (W19). 100–150°C = acid risk zone. Below 100°C = latent + condensate.</div>
+      <div id="cascade" class="cascade"></div>
+      <div style="margin-top:16px;">
+        <table class="dt">
+          <tr><td>Total exhaust heat [U1]</td><td id="er_tot">—</td><td class="u">kW</td></tr>
+          <tr class="hl"><td>Recoverable heat [W19]</td><td id="er_W19">—</td><td class="u">kW</td></tr>
+          <tr><td>Sensible 100–150°C zone [−W16] — acid risk</td><td id="er_W16">—</td><td class="u">kW</td></tr>
+          <tr><td>Latent — all water condensation [T17] — requires condenser</td><td id="er_T17">—</td><td class="u">kW</td></tr>
+          <tr><td>Condensed water sensible — 100°C → T_ref [T18]</td><td id="er_T18">—</td><td class="u">kW</td></tr>
+          <tr><td>Dry exhaust gas sensible — 100°C → T_ref [T19]</td><td id="er_T19">—</td><td class="u">kW</td></tr>
+          <tr class="sub hla"><td>Non-recoverable total</td><td id="er_nr">—</td><td class="u">kW</td></tr>
+          <tr class="hl"><td>Recovery fraction (W19 / U1)</td><td id="er_pct">—</td><td class="u">%</td></tr>
+        </table>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-header"><span class="dot amber"></span>Exhaust Composition</div><div class="card-body">
+      <table class="dt">
+        <tr><td>T_TO</td><td id="er_Tto">—</td><td class="u">°C</td></tr>
+        <tr><td>Wet exhaust flow</td><td id="er_mw">—</td><td class="u">kg/h</td></tr>
+        <tr><td>Mass fraction CO₂</td><td id="er_xCO2">—</td><td class="u">–</td></tr>
+        <tr><td>Mass fraction H₂O</td><td id="er_xH2O">—</td><td class="u">–</td></tr>
+        <tr><td>Mass fraction N₂</td><td id="er_xN2">—</td><td class="u">–</td></tr>
+        <tr><td>Mass fraction O₂ (excess)</td><td id="er_xO2">—</td><td class="u">–</td></tr>
+      </table>
+    </div></div>
+  </div>
+
+  <!-- SENSITIVITY -->
+  <div class="tc" id="tab-sens">
+    <div class="card mb16"><div class="card-header"><span class="dot"></span>Moisture Sensitivity — 1,000 kg/h dry feed basis, all other inputs constant</div><div class="card-body">
+      <table class="st">
+        <thead><tr>
+          <th>Moisture %</th><th>Wet Feed kg/h</th><th>Air kg/h</th>
+          <th>Biochar kg/h</th><th>T_TO °C</th><th>Total Exhaust kW</th><th>Recoverable kW</th><th>Recovery %</th>
+        </tr></thead>
+        <tbody id="stb"></tbody>
+      </table>
+    </div></div>
+    <div class="card"><div class="card-header"><span class="dot amber"></span>Moisture Impact Summary</div><div class="card-body">
+      <div id="mist" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2;"></div>
+    </div></div>
+  </div>
+  <!-- FLOWS -->
+  <div class="tc" id="tab-flows">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="dot blue"></span>Mass balance — kg/h</div>
+        <div class="card-body" style="padding:14px 14px 8px;">
+          <svg id="wf-mass" width="100%" style="display:block;overflow:visible;"></svg>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="dot amber"></span>Energy balance — kW</div>
+        <div class="card-body" style="padding:14px 14px 8px;">
+          <svg id="wf-energy" width="100%" style="display:block;overflow:visible;"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="tc" id="tab-sources">
+    <div class="card mb16">
+      <div class="card-header"><span class="dot blue"></span>Feedstock Compositions &amp; HHV</div>
+      <div class="card-body">
+        <table class="dt" style="font-size:11px;">
+          <tr style="border-bottom:1px solid var(--border2);">
+            <td style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em;">Feedstock</td>
+            <td style="color:var(--text3);text-align:right;font-size:10px;">C</td>
+            <td style="color:var(--text3);text-align:right;font-size:10px;">H</td>
+            <td style="color:var(--text3);text-align:right;font-size:10px;">O</td>
+            <td style="color:var(--text3);text-align:right;font-size:10px;">Ash (dry)</td>
+            <td style="color:var(--text3);text-align:right;font-size:10px;">HHV kJ/kg dry</td>
+            <td style="color:var(--text3);padding-left:12px;font-size:10px;">Source</td>
+          </tr>
+          <tr><td>Hardwood</td><td style="text-align:right;">49.2%</td><td style="text-align:right;">6.2%</td><td style="text-align:right;">44.6%</td><td style="text-align:right;">0.3%</td><td style="text-align:right;">19,000</td><td style="padding-left:12px;color:var(--text3);">ISO 17225-1:2021; typical range 17.5–19.5 MJ/kg</td></tr>
+          <tr><td>Softwood</td><td style="text-align:right;">51.2%</td><td style="text-align:right;">6.3%</td><td style="text-align:right;">42.5%</td><td style="text-align:right;">0.2%</td><td style="text-align:right;">20,000</td><td style="padding-left:12px;color:var(--text3);">ISO 17225-1:2021; typical range 18.5–22.5 MJ/kg</td></tr>
+          <tr><td>Rice hulls</td><td style="text-align:right;">38.5%</td><td style="text-align:right;">5.0%</td><td style="text-align:right;">35.8%</td><td style="text-align:right;">19.2%</td><td style="text-align:right;">15,000</td><td style="padding-left:12px;color:var(--text3);">Jenkins et al. (1998) Biomass &amp; Bioenergy; high silica ash</td></tr>
+          <tr><td>Activated sludge</td><td style="text-align:right;">31.5%</td><td style="text-align:right;">4.7%</td><td style="text-align:right;">19.5%</td><td style="text-align:right;">38.0%</td><td style="text-align:right;">13,500</td><td style="padding-left:12px;color:var(--text3);">Fonts et al. (2012) Renew. Sust. Energy Rev.; municipal WAS</td></tr>
+          <tr style="border-top:1px solid var(--border2);"><td colspan="7" style="color:var(--text3);font-size:10px;padding-top:8px;">C, H, O reported on a dry whole-sample basis. Model normalises C+H+O to 1.0 (ash-free basis) for elemental flow calculations. HHV is on a dry whole-sample basis (ash dilution already reflected).</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card mb16">
+        <div class="card-header"><span class="dot amber"></span>Thermophysical Properties</div>
+        <div class="card-body">
+          <table class="dt" style="font-size:11px;">
+            <tr><td>Cp water (liquid)</td><td style="text-align:right;">4.18 kJ/kgK</td><td style="color:var(--text3);padding-left:8px;">Standard value</td></tr>
+            <tr><td>Cp steam</td><td style="text-align:right;">2.00 kJ/kgK</td><td style="color:var(--text3);padding-left:8px;">At ~300°C mean; NIST Webbook</td></tr>
+            <tr><td>H_vap water</td><td style="text-align:right;">2,257 kJ/kg</td><td style="color:var(--text3);padding-left:8px;">At 100°C, 1 atm</td></tr>
+            <tr><td>Cp dry biomass</td><td style="text-align:right;">1.50 kJ/kgK</td><td style="color:var(--text3);padding-left:8px;">Gronli &amp; Melaaen (2000); nominal for wood</td></tr>
+            <tr><td>Cp syngas</td><td style="text-align:right;">2.10 kJ/kgK</td><td style="color:var(--text3);padding-left:8px;">Wet syngas ~500°C; Turns (2011)</td></tr>
+            <tr><td>Cp air</td><td style="text-align:right;">1.05 kJ/kgK</td><td style="color:var(--text3);padding-left:8px;">At ~350°C mean; NIST</td></tr>
+            <tr><td>Cp char (biochar)</td><td style="text-align:right;">1.00 kJ/kgK</td><td style="color:var(--text3);padding-left:8px;">Antal &amp; Grønli (2003)</td></tr>
+            <tr><td>Pyrolysis ΔH_rxn</td><td style="text-align:right;">300 kJ/kg</td><td style="color:var(--text3);padding-left:8px;">Endothermic; Rath et al. (2003); range 100–400 kJ/kg</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card mb16">
+        <div class="card-header"><span class="dot"></span>Exhaust Gas Cp — Shomate Equation (JANAF)</div>
+        <div class="card-body" style="font-size:11px;font-family:var(--mono);color:var(--text2);">
+          <div style="margin-bottom:6px;">Cp(T) = A + Bt + Ct² + Dt³ + E/t² &nbsp;[J/mol·K]</div>
+          <div style="color:var(--text3);font-size:10px;margin-bottom:10px;">t = T(K)/1000 &nbsp;|&nbsp; divide by MW(g/mol) → kJ/kgK</div>
+          <table class="dt" style="font-size:11px;">
+            <tr style="border-bottom:1px solid var(--border2);"><td style="color:var(--text3);font-size:10px;">Species</td><td style="text-align:right;color:var(--text3);font-size:10px;">A</td><td style="text-align:right;color:var(--text3);font-size:10px;">B</td><td style="text-align:right;color:var(--text3);font-size:10px;">C</td><td style="text-align:right;color:var(--text3);font-size:10px;">D</td><td style="text-align:right;color:var(--text3);font-size:10px;">E</td></tr>
+            <tr><td>N₂</td><td style="text-align:right;">26.09</td><td style="text-align:right;">8.22</td><td style="text-align:right;">−1.98</td><td style="text-align:right;">0.159</td><td style="text-align:right;">−0.044</td></tr>
+            <tr><td>CO₂</td><td style="text-align:right;">24.99</td><td style="text-align:right;">55.19</td><td style="text-align:right;">−33.69</td><td style="text-align:right;">7.95</td><td style="text-align:right;">−0.137</td></tr>
+            <tr><td>H₂O(g)</td><td style="text-align:right;">30.09</td><td style="text-align:right;">6.83</td><td style="text-align:right;">6.79</td><td style="text-align:right;">−2.53</td><td style="text-align:right;">0.082</td></tr>
+            <tr><td>O₂ &lt;700K</td><td style="text-align:right;">31.32</td><td style="text-align:right;">−20.24</td><td style="text-align:right;">57.87</td><td style="text-align:right;">−36.51</td><td style="text-align:right;">−0.007</td></tr>
+            <tr><td>O₂ &gt;700K</td><td style="text-align:right;">30.03</td><td style="text-align:right;">8.77</td><td style="text-align:right;">−3.99</td><td style="text-align:right;">0.788</td><td style="text-align:right;">−0.742</td></tr>
+          </table>
+          <div style="color:var(--text3);font-size:10px;margin-top:8px;">Source: NIST-JANAF, Chase (1998). Mixture Cp computed at mean T of each cascade zone, weighted by exhaust mass fractions. Three zones: T_TO→150°C (wet), 150→100°C (wet, acid risk), 100°C→T_ref (dry gas only — water condensed).</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="dot red"></span>Model Assumptions &amp; Limitations</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2.2;">
+        <div>— Biomass elemental composition modelled as C, H, O only. N and S neglected (small for woody biomass; more significant for sludge).</div>
+        <div>— Ash is assumed inert and exits entirely with biochar. In practice some ash volatilises or is entrained in exhaust gas.</div>
+        <div>— Pyrolysis modelled as a single endothermic step at T_reactor. Multi-stage kinetics and tar cracking not included.</div>
+        <div>— Syngas is assumed completely combusted in the thermal oxidiser at 100% efficiency. Partial combustion losses are not modelled.</div>
+        <div>— Acid dew point fixed at 150°C. For high-sulphur feedstocks (e.g. sludge) the actual dew point may be considerably higher.</div>
+        <div>— HHV biochar is entered on an ash-free (organic fraction) basis. Typical char values: 28,000–32,000 kJ/kg organic.</div>
+        <div>— Excess O₂ target is specified as a dry molar fraction, consistent with standard flue gas analysers (e.g. Testo, Wohler).</div>
+        <div>— Combustion floor temperature (default 650°C) is an engineering judgement; actual minimum depends on syngas composition and TO design.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIOS -->
+  <div class="tc" id="tab-scenarios">
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header"><span class="dot green"></span>Save Current Scenario</div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="scenario-name-input" placeholder="Scenario name…"
+              style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;
+                     color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;">
+            <button onclick="saveScenario()"
+              style="padding:6px 16px;background:var(--green-muted);border:1px solid var(--green-dim);
+                     border-radius:3px;color:var(--green);font-family:var(--mono);font-size:11px;
+                     font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">
+              Save
+            </button>
+          </div>
+          <div id="scenario-save-msg" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:8px;min-height:16px;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="dot blue"></span>Export Scenarios to CSV</div>
+        <div class="card-body">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+            Exports all saved scenarios side by side — inputs, mass flows, energy balance, and exhaust recovery terms.
+          </div>
+          <button onclick="exportCSV()"
+            style="padding:6px 16px;background:var(--bg4);border:1px solid var(--border2);
+                   border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;
+                   font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">
+            Download CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="dot amber"></span>Saved Scenarios</div>
+      <div class="card-body" style="padding:0;">
+        <div id="scenarios-empty" style="padding:20px 14px;font-family:var(--mono);font-size:12px;color:var(--text3);">
+          No scenarios saved yet. Configure your inputs and click Save above.
+        </div>
+        <div id="scenarios-list" style="display:none;">
+          <div style="overflow-x:auto;">
+            <table id="scenarios-table" style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;white-space:nowrap;"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+  <span id="sm" class="ok">● MASS OK</span>
+  <span id="se" class="ok">● ENERGY OK</span>
+  <span style="margin-left:auto;">Air composition: 21% O₂ / 79% N₂ by volume → N₂:O₂ = 79/21 = 3.7619</span>
+  <span style="font-size:10px;color:var(--text3);margin-left:24px;">Malena Maraviglia, 2026</span>
+</div>
+
+<script src="calc.js"></script>
+<script>
+// ── CONSTANTS — exact spreadsheet values ──
+// calc.js loaded via <script src="calc.js"> below
+
+let lastTto = 725.5, lastRc = 0.25;   // used when switching modes
+
+function getInp() {
+  const base = {
+    fw:    g('i_fw'),  mc:    Math.min(0.999, Math.max(0, g('i_mc'))),
+    xC:    g('i_xC'),  xH:    g('i_xH'),  xO:    g('i_xO'),
+    xash:  g('i_xash'),
+    xCbc:  g('i_xCbc'),rHC:   g('i_rHC'), HHVbc: g('i_HHVbc'),
+    xs:    g('i_xs'),  HHVbm: g('i_HHVbm'),
+    cpBM:  g('i_cpBM'),cpSG:  g('i_cpSG'),
+    dH:    g('i_dH'),  Tr:    g('i_Tr'),  Treac: g('i_Treac'), Tto_min: g('i_Tto_min')
+  };
+  if (solveMode === 'tto') {
+    base.rc  = g('i_rc');
+    base.Tto = null;
+  } else {
+    base.rc  = null;
+    base.Tto = g('i_Tto_input');
+  }
+  return base;
+}
+
+function checkComp() {
+  const s = g('i_xC')+g('i_xH')+g('i_xO');
+  const el = document.getElementById('cc');
+  const ok = Math.abs(s-1)<0.005;
+  el.textContent = `C + H + O = ${s.toFixed(3)} ${ok ? '✓' : '✗  (must sum to 1)'}`;
+  el.className = 'comp-check ' + (ok ? 'ok' : 'warn');
+}
+
+function run() {
+  const inp = getInp();
+  checkComp();
+  updateAshNote();
+
+  // Moisture bounds check
+  const mc_raw = parseFloat(document.getElementById('i_mc').value);
+  const mcErr = document.getElementById('mc-error');
+  if (isNaN(mc_raw) || mc_raw < 0) {
+    mcErr.textContent = 'Moisture fraction must be ≥ 0.'; mcErr.style.display = 'block'; return;
+  } else if (mc_raw >= 1) {
+    mcErr.textContent = 'Moisture fraction must be < 1 (100%). Enter as a decimal, e.g. 0.30 for 30%.'; mcErr.style.display = 'block'; return;
+  } else {
+    mcErr.style.display = 'none';
+  }
+  const r = calc(inp);
+
+  // Persist solved values for mode switching
+  lastTto = r.Tto;
+  lastRc  = r.rc;
+
+  // Display computed T_TO / rc in sidebar
+  if (solveMode === 'tto') {
+    const el = document.getElementById('i_Tto_display');
+    if (el) el.textContent = fmt(r.Tto, 1);
+  } else {
+    const el = document.getElementById('i_rc_display');
+    if (el) el.textContent = fmt(r.rc, 4);
+  }
+
+  // Supplemental heat / infeasibility UI
+  const infBox   = document.getElementById('infeasible-box');
+  const kpiSupp  = document.getElementById('kpi_supp');
+  const suppRow  = document.getElementById('e_supp_row');
+
+  if (r.infeasible) {
+    infBox.style.display = 'block';
+    kpiSupp.style.display = 'block';
+
+    document.getElementById('infeasible-reason').textContent = r.infeasible_reason;
+
+    // Option A display
+    const btnA = document.getElementById('opt-a-btn');
+    const btnB = document.getElementById('opt-b-btn');
+    const hl = 'rgba(251,191,36,0.12)';
+    btnA.style.background = remedyMode === 'rc'   ? hl : '';
+    btnB.style.background = remedyMode === 'supp' ? hl : '';
+    btnA.querySelector('div:first-child').style.color = remedyMode === 'rc'   ? 'var(--amber)' : 'var(--text3)';
+    btnB.querySelector('div:first-child').style.color = remedyMode === 'supp' ? 'var(--amber)' : 'var(--text3)';
+
+    const optAValEl = document.getElementById('opt-a-val');
+    if (solveMode === 'tto') {
+      if (r.optA_feasible) {
+        optAValEl.textContent = `rc = ${fmt(r.optA_rc, 3)} (from ${fmt(inp.rc, 2)})`;
+        optAValEl.style.color = remedyMode === 'rc' ? 'var(--amber)' : 'var(--text2)';
+      } else {
+        optAValEl.textContent = 'Not possible — rc would be negative';
+        optAValEl.style.color = 'var(--red)';
+        // Force remedy to supp if optA not feasible
+        if (remedyMode === 'rc') { remedyMode = 'supp'; }
+      }
+    } else {
+      // RC mode: optA = rc clamped to 0
+      const ttoStr = r.optA_Tto != null ? `T_TO → ${fmt(r.optA_Tto,0)}°C` : 'rc = 0';
+      optAValEl.textContent = `rc = 0  (${ttoStr})`;
+      optAValEl.style.color = r.optA_feasible && remedyMode === 'rc' ? 'var(--amber)' : 'var(--text2)';
+    }
+
+    document.getElementById('opt-b-val').textContent = `Q_supp = ${fmt(r.optB_Qsupp, 0)} kW`;
+    document.getElementById('opt-b-val').style.color = remedyMode === 'supp' ? 'var(--amber)' : 'var(--text2)';
+
+    // KPI card
+    if (r.remedy === 'supp') {
+      document.getElementById('k_supp_label').textContent = 'Suppl. Heat';
+      document.getElementById('k_supp_unit').textContent  = 'kW';
+      S('k_supp', r.Q_supp, 0);
+      suppRow.style.display = '';
+      S('e_supp', r.Q_supp, 0);
+    } else {
+      document.getElementById('k_supp_label').textContent = 'Conv. Rate ↓';
+      document.getElementById('k_supp_unit').textContent  = '–';
+      document.getElementById('k_supp').textContent = fmt(r.rc, 3);
+      suppRow.style.display = 'none';
+    }
+
+    // Colour solved display amber
+    const ttoEl = document.getElementById('i_Tto_display');
+    if (ttoEl) ttoEl.style.color = 'var(--amber)';
+    const rcEl  = document.getElementById('i_rc_display');
+    if (rcEl)  rcEl.style.color  = 'var(--amber)';
+
+  } else {
+    infBox.style.display  = 'none';
+    kpiSupp.style.display = 'none';
+    suppRow.style.display = 'none';
+    const ttoEl = document.getElementById('i_Tto_display');
+    if (ttoEl) ttoEl.style.color = 'var(--green)';
+    const rcEl  = document.getElementById('i_rc_display');
+    if (rcEl)  rcEl.style.color  = 'var(--green)';
+  }
+
+  // Energy source total
+  S('e_src_total', r.T1 + (r.Q_supp||0), 1);
+
+  // KPIs
+  S('k_dry', r.md,  0); S('k_bc',  r.mbc, 0);
+  S('k_air', r.mair,0); S('k_ex',  r.U1,  0); S('k_rec', r.above_adp, 0);
+
+  // Mass
+  S('m_fw',r.fw,0); S('m_dry',r.md,1); S('m_wat',r.mw,1); S('m_air',r.mair,1); S('m_in',r.tin,1);
+  // Ash rows — show dashes when ash inactive
+  document.getElementById('m_ash_disp').textContent = r.ash_active ? fmt(r.m_ash,1) : '—';
+  document.getElementById('m_org_disp').textContent = r.ash_active ? fmt(r.m_org,1) : '—';
+  S('m_bc',r.mbc,2);
+  document.getElementById('m_bc_org').textContent = r.ash_active ? fmt(r.mbc_org,1) : '—';
+  document.getElementById('m_bc_ash').textContent = r.ash_active ? fmt(r.m_ash,1) : '—';
+  S('m_Cbc',r.mCbc,2);
+  document.getElementById('m_Cseq').textContent = fmt(r.Cseq*100,1);
+  S('m_exw',r.mexw,1); S('m_CO2',r.mCO2,1); S('m_H2O',r.mH2Ox,1); S('m_N2',r.mN2,1); S('m_O2x',r.mO2x,1);
+  S('m_sg',r.msg,1); S('m_Csg',r.mCsg,2); S('m_Hsg',r.mHsg,2); S('m_Osg',r.mOsg,2);
+  document.getElementById('m_sgmc').textContent = fmt(r.sgmc,4);
+  S('m_O2g',r.mO2g,1); S('m_Ocr',r.mOsg,1); S('m_O2n',r.mO2n,1); S('m_O2e',r.mO2x,1); S('m_air2',r.mair,1);
+
+  const mbc_el = document.getElementById('mbc');
+  if (r.merr < 0.01) {
+    mbc_el.innerHTML = `<div class="bcheck ok">✓ Mass balance closes — error ${r.merr.toFixed(5)}%&nbsp;&nbsp;(In: ${fmt(r.tin,1)} kg/h | Out: ${fmt(r.tout,1)} kg/h)</div>`;
+    document.getElementById('sm').textContent = `● MASS OK (Δ=${r.merr.toFixed(5)}%)`;
+    document.getElementById('sm').className = 'ok';
+  } else {
+    mbc_el.innerHTML = `<div class="bcheck warn">✗ Mass error ${r.merr.toFixed(3)}%</div>`;
+    document.getElementById('sm').textContent = `● MASS ERR ${r.merr.toFixed(3)}%`;
+    document.getElementById('sm').className = 'warn';
+  }
+
+  S('e_src',r.T1,1);
+  const W15 = r.U1;  // total exhaust enthalpy = T16+T17+T18+T19
+  const totalSource = r.T1 + (r.Q_supp||0);
+  const ebc = document.getElementById('ebc');
+  const solvedStr = solveMode === 'tto'
+    ? `T_TO = ${fmt(r.Tto,1)}°C${r.infeasible ? ' (clamped)' : ''}`
+    : `conv. rate = ${fmt(r.rc,4)}${r.infeasible ? ' (clamped at 0)' : ''}`;
+  ebc.textContent = `T1 = ${fmt(r.T1,1)} kW${r.Q_supp>0?' + '+fmt(r.Q_supp,1)+' Q_supp':''} | T21 = ${fmt(r.T21,1)} kW | T23 = ${fmt(r.T23,4)} kW | Solved: ${solvedStr}`;
+  ebc.className = 'bcheck ' + (r.infeasible ? 'warn' : 'ok');
+  document.getElementById('se').textContent = `● ENERGY ${r.infeasible ? 'SUPP REQ' : 'OK'} — ${solvedStr}`;
+  document.getElementById('se').className = r.infeasible ? 'warn' : 'ok';
+
+  S('e_T5',r.T5,1); S('e_T6',r.T6,1); S('e_T7',r.T7,1);
+  S('e_T9',r.T9,1); S('e_T10',r.T10,1); S('e_T11',r.T11,1); S('e_T12',r.T12,1);
+  S('e_T13',r.T13,1); S('e_T14',r.T14,1);
+  S('e_T16',r.T16,1); S('e_T17',r.T17,1); S('e_T18',r.T18_water,1); S('e_T19',r.T19_dry,1);
+  S('e_T21',r.T21,1); S('e_T23',r.T23,4);
+  S('e_src_total', totalSource, 1);
+
+  // Exhaust recovery
+  S('er_tot',r.U1,1); S('er_W19',r.above_adp,1); S('er_W16',r.acid_zone,1);
+  S('er_T17',r.latent,1);
+  S('er_T18',r.T18_water,1);
+  S('er_T19',r.T19_dry,1);
+  S('er_nr',r.non_rec,1);
+  document.getElementById('er_pct').textContent = fmt(r.rpct*100,1);
+  document.getElementById('er_Tto').textContent = fmt(r.Tto, 1);
+  S('er_mw',r.mexw,1);
+  document.getElementById('er_xCO2').textContent = fmt(r.xCO2,4);
+  document.getElementById('er_xH2O').textContent = fmt(r.xH2O,4);
+  document.getElementById('er_xN2').textContent  = fmt(r.xN2, 4);
+  document.getElementById('er_xO2').textContent  = fmt(r.xO2, 4);
+
+  const stages = [
+    {lbl:`Recoverable heat [W19]`, val:r.above_adp, col:'#4ade80'},
+    {lbl:'Sensible 100–150°C — acid risk zone [−W16]', val:r.acid_zone, col:'#fbbf24'},
+    {lbl:'Latent — water condensation [T17]',           val:r.latent,    col:'#60a5fa'},
+    {lbl:'Sensible water + dry gas <100°C [T18+T19]',  val:r.low_zone,  col:'#f87171'},
+  ];
+  document.getElementById('cascade').innerHTML = stages.map(s=>`
+    <div class="cascade-row">
+      <div class="cascade-lbl">${s.lbl}</div>
+      <div class="cascade-bar-wrap"><div class="cascade-bar" style="width:${Math.max(0,s.val/r.U1*100).toFixed(1)}%;background:${s.col};opacity:0.85;"></div></div>
+      <div class="cascade-val">${fmt(s.val,0)} kW</div>
+    </div>`).join('');
+
+  // Sensitivity — always solves for T_TO (rc held at current input or lastRc)
+  // RC mode with fixed Tto is misleading for moisture sensitivity (see comments above)
+  const sens_rc = solveMode === 'tto' ? inp.rc : (lastRc || 0.25);
+  const mcs = [0,0.05,0.10,0.13,0.15,0.20,0.25,0.30,0.35,0.40];
+  const dryb = 1000;
+  let rows='', snaps=[];
+  mcs.forEach(mc_v => {
+    const fw_v = dryb / (1 - mc_v);
+    const sens_inp = {...inp, fw: fw_v, mc: mc_v, rc: sens_rc};
+    const Tto_v = solveTto(sens_inp, sens_rc);
+    const s = calcAt(sens_inp, sens_rc, Tto_v);
+    snaps.push(s);
+    const act = Math.abs(mc_v - inp.mc) < 0.005;
+    rows += `<tr class="${act?'ar':''}">
+      <td>${(mc_v*100).toFixed(0)}%</td><td>${fmt(fw_v,0)}</td><td>${fmt(s.mair,0)}</td>
+      <td>${fmt(s.mbc,1)}</td><td>${fmt(s.Tto,1)}</td><td>${fmt(s.U1,0)}</td><td>${fmt(s.above_adp,0)}</td><td>${fmt(s.rpct*100,1)}%</td>
+    </tr>`;
+  });
+  document.getElementById('stb').innerHTML = rows;
+
+  document.querySelector('.st thead tr').innerHTML = `
+    <th>Moisture %</th><th>Wet Feed kg/h</th><th>Air kg/h</th>
+    <th>Biochar kg/h</th><th>T_TO °C</th><th>Total Exhaust kW</th><th>Recoverable kW</th><th>Recovery %</th>`;
+
+  const s0 = snaps[0], sN = snaps[snaps.length-1];
+  const dAdp = sN.above_adp - s0.above_adp, dLat = sN.T6 - s0.T6;
+  document.getElementById('mist').innerHTML =
+    `Moving from 0% → 40% moisture (1,000 kg/h dry feed basis, rc = ${fmt(sens_rc,2)}):<br>
+     Recoverable heat: <span style="color:var(--green)">${fmt(s0.above_adp,0)} kW</span> → <span style="color:var(--amber)">${fmt(sN.above_adp,0)} kW</span> &nbsp;(${fmt(dAdp/s0.above_adp*100,1)}%)<br>
+     Total exhaust: ${fmt(s0.U1,0)} kW → ${fmt(sN.U1,0)} kW<br>
+     Primary driver: irrecoverable latent heat increases by <span style="color:var(--red)">${fmt(dLat,0)} kW</span><br>
+     Air demand change: <span style="color:var(--blue)">${fmt(sN.mair-s0.mair,0)} kg/h</span>`;
+
+  updateCharts(r);
+}
+
+let lastResult = null;
+
+
+// ── FEEDSTOCK LIBRARY ──
+const FEEDSTOCKS = {
+  hardwood:   { xC: 0.4920, xH: 0.0622, xO: 0.4458, xash: 0.003, HHV: 19000, meta: 'ISO 17225 — C49%, H6.2%, O44%, ash 0.3%, HHV 19 MJ/kg dry' },
+  softwood:   { xC: 0.5115, xH: 0.0632, xO: 0.4253, xash: 0.002, HHV: 20000, meta: 'ISO 17225 — C51%, H6.3%, O42%, ash 0.2%, HHV 20 MJ/kg dry' },
+  rice_hulls: { xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHV: 15000, meta: 'C38%, H5%, O36% dry — high silica ash 19.2%, HHV 15 MJ/kg dry' },
+  act_sludge: { xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHV: 13500, meta: 'Municipal WAS — C31%, H4.7%, O19.5% dry, ash 38%, HHV 13.5 MJ/kg dry' },
+  custom:     { xC: null,   xH: null,   xO: null,   xash: null,  HHV: null,  meta: 'Enter values manually' }
+};
+
+function setFeedstock(key) {
+  const f = FEEDSTOCKS[key];
+  const isCustom = key === 'custom';
+  document.getElementById('feedstock-meta').textContent = f.meta;
+
+  // Populate and lock/unlock fields
+  ['xC','xH','xO','xash'].forEach(id => {
+    const row = document.getElementById('row-' + id);
+    const inp = document.getElementById('i_' + id);
+    if (!isCustom) {
+      inp.value = f[id].toFixed(4);
+      row.classList.add('dimmed');
+      inp.readOnly = true;
+    } else {
+      row.classList.remove('dimmed');
+      inp.readOnly = false;
+    }
+  });
+
+  // HHV biomass: locked for presets, editable for custom
+  const HHVrow = document.getElementById('row-HHVbm');
+  const HHVinp = document.getElementById('i_HHVbm');
+  if (!isCustom) {
+    HHVrow.classList.add('dimmed');
+    HHVinp.readOnly = true;
+  } else {
+    HHVrow.classList.remove('dimmed');
+    HHVinp.readOnly = false;
+  }
+
+  updateAshNote();
+  checkComp();
+  run();
+}
+
+function updateAshNote() {
+  const xash = parseFloat(document.getElementById('i_xash').value) || 0;
+  const note = document.getElementById('ash-note');
+  if (xash > 0.01) {
+    note.textContent = `${(xash*100).toFixed(1)}% ash — tracked explicitly, exits with biochar`;
+    note.style.color = 'var(--amber)';
+  } else {
+    note.textContent = `≤1% — treated as zero`;
+    note.style.color = 'var(--text3)';
+  }
+}
+
+attachListeners();
+// Override: composition inputs are read-only for non-custom feedstocks — re-run on change anyway
+document.getElementById('i_feedstock').addEventListener('change', () => { attachListeners(); });
+run();
+
+// ── WATERFALL CHARTS ──
+
+function drawWaterfall(svgId, steps, unit) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const W = svg.getBoundingClientRect().width || 500;
+
+  const PAD = { top: 12, right: 16, bottom: 56, left: 18 };
+  const BAR_W = Math.min(48, (W - PAD.left - PAD.right) / steps.length - 12);
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = 220;
+  const H = chartH + PAD.top + PAD.bottom;
+
+  // Find scale — simulate bar positions to get true min/max
+  let runMax = 0, runMin = 0, runCur = 0;
+  steps.forEach(s => {
+    if (s.total) {
+      runMax = Math.max(runMax, s.val);
+      runCur = s.val;
+    } else if (s.sub) {
+      const peak = runCur;
+      const base = runCur - s.val;
+      runMax = Math.max(runMax, peak);
+      runMin = Math.min(runMin, base);
+      runCur = base;
+    } else {
+      runCur += s.val;
+      runMax = Math.max(runMax, runCur);
+      runMin = Math.min(runMin, runCur);
+    }
+  });
+  runMax = Math.max(runMax, steps[0].val);
+  const dataMax = runMax * 1.08;
+  const dataMin = Math.min(0, runMin * 1.08);
+  const dataRange = dataMax - dataMin;
+
+  const yScale = v => PAD.top + chartH - ((v - dataMin) / dataRange) * chartH;
+  const fmtV = v => Math.abs(v) >= 1000
+    ? (v/1000).toFixed(1) + 'k'
+    : Math.round(v).toLocaleString('en-US');
+
+  // Step x positions
+  const slotW = chartW / steps.length;
+  const xCenter = i => PAD.left + slotW * i + slotW / 2;
+
+  // Build bars: each step has a base (running total before) and a delta
+  // total:true  = full-height bar from 0 (resets cursor to its value)
+  // sub:true    = steps down from current cursor (for splitting a total)
+  const bars = [];
+  let cursor = 0;
+  steps.forEach((s, i) => {
+    const isTotal = s.total === true;
+    const isSub   = s.sub   === true;
+    let base, top_v;
+    if (isTotal) {
+      base   = 0;
+      top_v  = s.val;
+      cursor = s.val;   // subsequent bars step down from here
+    } else if (isSub) {
+      base   = cursor - s.val;   // float from cursor downward
+      top_v  = cursor;
+      cursor = base;
+    } else {
+      base   = cursor;
+      top_v  = cursor + s.val;
+      cursor = top_v;
+    }
+    bars.push({ ...s, i, base, top_v, isTotal, isSub });
+  });
+
+  // Zero line
+  const y0 = yScale(0);
+
+  // Grid lines
+  const gridCount = 4;
+  let gridLines = '';
+  for (let g = 0; g <= gridCount; g++) {
+    const v = dataMin + (dataRange / gridCount) * g;
+    const y = yScale(v);
+    const label = fmtV(v);
+    gridLines += `<line x1="${PAD.left}" y1="${y}" x2="${W - PAD.right}" y2="${y}"
+      stroke="#2e3430" stroke-width="0.5"/>
+      <text x="${PAD.left - 4}" y="${y + 4}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="10" fill="#5a6358">${label}</text>`;
+  }
+
+  // Connector lines between bars
+  let connectors = '';
+  for (let i = 0; i < bars.length - 1; i++) {
+    const b = bars[i], nb = bars[i+1];
+    const xR = xCenter(b.i)  + BAR_W/2 + 2;
+    const xL = xCenter(nb.i) - BAR_W/2 - 2;
+    // connect the top of current bar to the base of the next
+    let yConn;
+    if (nb.isTotal) {
+      yConn = yScale(0);           // next is a full bar from zero
+    } else if (nb.isSub) {
+      yConn = yScale(nb.top_v);    // next sub bar hangs from here
+    } else {
+      yConn = yScale(b.top_v);     // normal: connect at running total
+    }
+    connectors += `<line x1="${xR}" y1="${yConn}" x2="${xL}" y2="${yConn}"
+      stroke="#3a4038" stroke-width="0.75" stroke-dasharray="3,2"/>`;
+  }
+
+  // Bars + labels
+  let barsSVG = '';
+  bars.forEach(b => {
+    const x  = xCenter(b.i) - BAR_W/2;
+    const y1 = yScale(Math.max(b.base, b.top_v));
+    const y2 = yScale(Math.min(b.base, b.top_v));
+    const bh = Math.max(2, y2 - y1);
+    const col = b.color;
+
+    // bar rect
+    barsSVG += `<rect x="${x}" y="${y1}" width="${BAR_W}" height="${bh}"
+      fill="${col}" rx="2" opacity="0.9"/>`;
+
+    // value label above/below bar
+    const isNeg = b.val < 0;
+    const labelY = isNeg ? y2 + 13 : y1 - 5;
+    barsSVG += `<text x="${xCenter(b.i)}" y="${labelY}" text-anchor="middle"
+      font-family="IBM Plex Mono,monospace" font-size="10" fill="#9ca89a">
+      ${isNeg ? '−' : b.isTotal ? '' : '+'}${fmtV(Math.abs(b.val))}
+    </text>`;
+
+    // x-axis label (wrapped at ~12 chars)
+    const words = b.label.split(' ');
+    let lines = [], line = '';
+    words.forEach(w => {
+      if ((line + ' ' + w).trim().length > 13 && line) {
+        lines.push(line.trim()); line = w;
+      } else { line = (line + ' ' + w).trim(); }
+    });
+    if (line) lines.push(line);
+    const labelBaseY = H - PAD.bottom + 16;
+    lines.forEach((ln, li) => {
+      barsSVG += `<text x="${xCenter(b.i)}" y="${labelBaseY + li * 13}"
+        text-anchor="middle" font-family="IBM Plex Mono,monospace"
+        font-size="10" fill="#9ca89a">${ln}</text>`;
+    });
+  });
+
+  // Unit label
+  const unitLabel = `<text x="${W - PAD.right}" y="${PAD.top - 2}" text-anchor="end"
+    font-family="IBM Plex Mono,monospace" font-size="10" fill="#5a6358">${unit}</text>`;
+
+  svg.setAttribute('height', H);
+  svg.innerHTML = gridLines + connectors + barsSVG + unitLabel;
+}
+
+function updateCharts(r) {
+  lastResult = r;
+  if (!document.getElementById('tab-flows').classList.contains('active')) return;
+
+  // ── MASS WATERFALL ──
+  // Build up with inputs, tear down with outputs, land on zero
+  const massSteps = [
+    { label: 'Dry biomass',  val: r.md,    color: '#378add' },
+    { label: 'Feed water',   val: r.mw,    color: '#60a5fa' },
+    { label: 'Air intake',   val: r.mair,  color: '#4ade80' },
+    { label: 'Biochar out',  val: -r.mbc,  color: '#fbbf24' },
+    { label: 'Wet exhaust',  val: -r.mexw, color: '#f87171' },
+  ];
+
+  // ── ENERGY WATERFALL ──
+  // HHV biomass → deduct each sink → deduct non-recoverable losses → land on recoverable heat
+  const energySteps = [
+    { label: 'HHV biomass',         val: r.T1,                       color: '#378add' },
+    { label: 'Biochar HHV out',     val: -(r.T11),                   color: '#fbbf24' },
+    { label: 'Drying & latent',     val: -(r.T5 + r.T6 + r.T7),     color: '#60a5fa' },
+    { label: 'Heat biomass',        val: -(r.T9),                    color: '#a78bfa' },
+    { label: 'Pyrolysis rxn',       val: -(r.T10),                   color: '#c084fc' },
+    { label: 'Heat syngas + air',   val: -(r.T12 + r.T13 + r.T14),  color: '#34d399' },
+    { label: 'Non-recoverable',     val: -(r.non_rec),               color: '#f87171' },
+    { label: 'Recoverable heat',    val: r.above_adp, color: '#4ade80', total: true },
+  ];
+
+  drawWaterfall('wf-mass',   massSteps,   'kg/h');
+  drawWaterfall('wf-energy', energySteps, 'kW');
+}
+
+// ── SCENARIO MANAGER ──
+
+const STORAGE_KEY = 'pyrolysis_scenarios_v1';
+
+function scenarioFields() {
+  // Returns ordered list of {key, label, section} for all inputs + outputs
+  return [
+    // ── INPUTS ──
+    {k:'feedstock',    l:'Feedstock type',             s:'Inputs'},
+    {k:'fw',           l:'Wet feed rate (kg/h)',        s:'Inputs'},
+    {k:'mc',           l:'Moisture fraction',           s:'Inputs'},
+    {k:'xash',         l:'Ash fraction (dry)',          s:'Inputs'},
+    {k:'xC',           l:'C (ash-free dry)',            s:'Inputs'},
+    {k:'xH',           l:'H (ash-free dry)',            s:'Inputs'},
+    {k:'xO',           l:'O (ash-free dry)',            s:'Inputs'},
+    {k:'HHVbm',        l:'HHV biomass (kJ/kg dry)',     s:'Inputs'},
+    {k:'rc',           l:'Conversion rate',             s:'Inputs'},
+    {k:'xCbc',         l:'C% in biochar (ash-free)',    s:'Inputs'},
+    {k:'rHC',          l:'Molar H:C biochar',           s:'Inputs'},
+    {k:'HHVbc',        l:'HHV biochar (kJ/kg a-f)',     s:'Inputs'},
+    {k:'xs',           l:'Excess O₂ (mol frac)',        s:'Inputs'},
+    {k:'cpBM',         l:'Cp biomass (kJ/kgK)',         s:'Inputs'},
+    {k:'cpSG',         l:'Cp syngas (kJ/kgK)',          s:'Inputs'},
+    {k:'dH',           l:'Pyrolysis ΔH_rxn (kJ/kg)',   s:'Inputs'},
+    {k:'Tr',           l:'T_ref (°C)',                  s:'Inputs'},
+    {k:'Treac',        l:'T_reactor (°C)',              s:'Inputs'},
+    {k:'Tto_min',      l:'T_TO minimum (°C)',           s:'Inputs'},
+    {k:'solveMode',    l:'Solve mode',                  s:'Inputs'},
+    // ── MASS OUTPUTS ──
+    {k:'r_md',         l:'Dry feed (kg/h)',             s:'Mass'},
+    {k:'r_mw',         l:'Feed water (kg/h)',           s:'Mass'},
+    {k:'r_m_ash',      l:'Ash in feed (kg/h)',          s:'Mass'},
+    {k:'r_m_org',      l:'Organic feed (kg/h)',         s:'Mass'},
+    {k:'r_mair',       l:'Air intake (kg/h)',           s:'Mass'},
+    {k:'r_mbc',        l:'Biochar total (kg/h)',        s:'Mass'},
+    {k:'r_mbc_org',    l:'Biochar organic (kg/h)',      s:'Mass'},
+    {k:'r_mexw',       l:'Wet exhaust (kg/h)',          s:'Mass'},
+    {k:'r_mCO2',       l:'CO₂ in exhaust (kg/h)',      s:'Mass'},
+    {k:'r_mH2Ox',      l:'H₂O in exhaust (kg/h)',      s:'Mass'},
+    {k:'r_mN2',        l:'N₂ in exhaust (kg/h)',       s:'Mass'},
+    {k:'r_mO2x',       l:'O₂ excess in exhaust (kg/h)',s:'Mass'},
+    {k:'r_Cseq',       l:'Carbon sequestered (%)',      s:'Mass'},
+    // ── ENERGY BALANCE ──
+    {k:'r_Tto',        l:'T_TO solved (°C)',            s:'Energy'},
+    {k:'r_T1',         l:'T1 — HHV biomass (kW)',       s:'Energy'},
+    {k:'r_T5',         l:'T5 — Sens water to 100°C (kW)',s:'Energy'},
+    {k:'r_T6',         l:'T6 — Latent vaporization (kW)',s:'Energy'},
+    {k:'r_T7',         l:'T7 — Sens steam to T_reac (kW)',s:'Energy'},
+    {k:'r_T9',         l:'T9 — Heat biomass (kW)',      s:'Energy'},
+    {k:'r_T10',        l:'T10 — Pyrolysis rxn (kW)',    s:'Energy'},
+    {k:'r_T11',        l:'T11 — Biochar HHV (kW)',      s:'Energy'},
+    {k:'r_T12',        l:'T12 — Biochar sensible (kW)', s:'Energy'},
+    {k:'r_T13',        l:'T13 — Syngas sensible (kW)',  s:'Energy'},
+    {k:'r_T14',        l:'T14 — Air sensible (kW)',     s:'Energy'},
+    {k:'r_T16',        l:'T16 — Exhaust wet sens (kW)', s:'Energy'},
+    {k:'r_T17',        l:'T17 — Latent condensation (kW)',s:'Energy'},
+    {k:'r_T18',        l:'T18 — Condensed water sens (kW)',s:'Energy'},
+    {k:'r_T19',        l:'T19 — Dry gas sens (kW)',     s:'Energy'},
+    {k:'r_T21',        l:'T21 — Total sinks (kW)',      s:'Energy'},
+    {k:'r_T23',        l:'T23 — Closing term (kW)',     s:'Energy'},
+    {k:'r_Q_supp',     l:'Q_supp supplemental (kW)',    s:'Energy'},
+    // ── EXHAUST RECOVERY ──
+    {k:'r_U1',         l:'Total exhaust heat (kW)',     s:'Recovery'},
+    {k:'r_above_adp',  l:'Recoverable heat W19 (kW)',   s:'Recovery'},
+    {k:'r_acid_zone',  l:'Acid zone loss (kW)',         s:'Recovery'},
+    {k:'r_latent',     l:'Latent loss (kW)',            s:'Recovery'},
+    {k:'r_non_rec',    l:'Non-recoverable total (kW)',  s:'Recovery'},
+    {k:'r_rpct',       l:'Recovery fraction (%)',       s:'Recovery'},
+  ];
+}
+
+function captureScenario(name) {
+  const inp = getInp();
+  const r   = lastResult || calc(inp);
+  const fields = scenarioFields();
+  const sc = { name, timestamp: new Date().toISOString() };
+
+  // Inputs
+  sc.feedstock = document.getElementById('i_feedstock').value;
+  sc.fw = inp.fw; sc.mc = inp.mc; sc.xash = inp.xash;
+  sc.xC = inp.xC; sc.xH = inp.xH; sc.xO = inp.xO;
+  sc.HHVbm = inp.HHVbm; sc.rc = r.rc;
+  sc.xCbc = inp.xCbc; sc.rHC = inp.rHC; sc.HHVbc = inp.HHVbc;
+  sc.xs = inp.xs; sc.cpBM = inp.cpBM; sc.cpSG = inp.cpSG; sc.dH = inp.dH;
+  sc.Tr = inp.Tr; sc.Treac = inp.Treac; sc.Tto_min = inp.Tto_min;
+  sc.solveMode = solveMode;
+
+  // Results
+  sc.r_md=r.md; sc.r_mw=r.mw; sc.r_m_ash=r.m_ash||0; sc.r_m_org=r.m_org||r.md;
+  sc.r_mair=r.mair; sc.r_mbc=r.mbc; sc.r_mbc_org=r.mbc_org||r.mbc;
+  sc.r_mexw=r.mexw; sc.r_mCO2=r.mCO2; sc.r_mH2Ox=r.mH2Ox;
+  sc.r_mN2=r.mN2; sc.r_mO2x=r.mO2x; sc.r_Cseq=r.Cseq*100;
+  sc.r_Tto=r.Tto;
+  sc.r_T1=r.T1; sc.r_T5=r.T5; sc.r_T6=r.T6; sc.r_T7=r.T7;
+  sc.r_T9=r.T9; sc.r_T10=r.T10; sc.r_T11=r.T11; sc.r_T12=r.T12;
+  sc.r_T13=r.T13; sc.r_T14=r.T14; sc.r_T16=r.T16; sc.r_T17=r.T17;
+  sc.r_T18=r.T18_water; sc.r_T19=r.T19_dry;
+  sc.r_T21=r.T21; sc.r_T23=r.T23; sc.r_Q_supp=r.Q_supp||0;
+  sc.r_U1=r.U1; sc.r_above_adp=r.above_adp; sc.r_acid_zone=r.acid_zone;
+  sc.r_latent=r.latent; sc.r_non_rec=r.non_rec; sc.r_rpct=r.rpct*100;
+  return sc;
+}
+
+function loadScenarios() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+function persistScenarios(scs) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scs)); return true; }
+  catch { return false; }
+}
+
+function saveScenario() {
+  const nameEl = document.getElementById('scenario-name-input');
+  const msgEl  = document.getElementById('scenario-save-msg');
+  const name   = nameEl.value.trim();
+  if (!name) { msgEl.style.color='var(--red)'; msgEl.textContent='Please enter a name.'; return; }
+  const scs = loadScenarios();
+  if (scs.find(s => s.name === name)) {
+    msgEl.style.color='var(--amber)';
+    msgEl.textContent=`Overwriting existing scenario "${name}"…`;
+    const idx = scs.findIndex(s => s.name === name);
+    scs[idx] = captureScenario(name);
+  } else {
+    scs.push(captureScenario(name));
+  }
+  if (persistScenarios(scs)) {
+    nameEl.value = '';
+    msgEl.style.color='var(--green)';
+    msgEl.textContent=`Saved "${name}" (${scs.length} scenario${scs.length>1?'s':''} stored)`;
+    renderScenariosTable();
+  } else {
+    msgEl.style.color='var(--red)';
+    msgEl.textContent='Storage unavailable — save the HTML file locally to use this feature.';
+  }
+}
+
+function deleteScenario(name) {
+  const scs = loadScenarios().filter(s => s.name !== name);
+  persistScenarios(scs);
+  renderScenariosTable();
+}
+
+function loadScenarioIntoModel(name) {
+  const sc = loadScenarios().find(s => s.name === name);
+  if (!sc) return;
+  // Set feedstock dropdown
+  const fsEl = document.getElementById('i_feedstock');
+  if (fsEl) { fsEl.value = sc.feedstock || 'custom'; setFeedstock(sc.feedstock || 'custom'); }
+  // Set all numeric inputs
+  const map = {
+    fw:'i_fw', mc:'i_mc', xash:'i_xash', xC:'i_xC', xH:'i_xH', xO:'i_xO',
+    HHVbm:'i_HHVbm', xCbc:'i_xCbc', rHC:'i_rHC', HHVbc:'i_HHVbc',
+    xs:'i_xs', cpBM:'i_cpBM', cpSG:'i_cpSG', dH:'i_dH',
+    Tr:'i_Tr', Treac:'i_Treac', Tto_min:'i_Tto_min'
+  };
+  Object.entries(map).forEach(([scKey, elId]) => {
+    const el = document.getElementById(elId);
+    if (el && sc[scKey] != null) el.value = sc[scKey];
+  });
+  // Set solve mode
+  if (sc.solveMode) setSolveMode(sc.solveMode);
+  attachListeners();
+  run();
+  // Switch back to mass tab so user sees results
+  T('mass');
+}
+
+function renderScenariosTable() {
+  const scs = loadScenarios();
+  const emptyEl = document.getElementById('scenarios-empty');
+  const listEl  = document.getElementById('scenarios-list');
+  const tbl     = document.getElementById('scenarios-table');
+  if (!scs.length) {
+    emptyEl.style.display='block'; listEl.style.display='none'; return;
+  }
+  emptyEl.style.display='none'; listEl.style.display='block';
+
+  // Key rows to show in preview table (subset for readability)
+  const preview = [
+    {k:'feedstock',   l:'Feedstock'},
+    {k:'mc',          l:'Moisture'},
+    {k:'r_Tto',       l:'T_TO (°C)'},
+    {k:'r_T1',        l:'HHV in (kW)'},
+    {k:'r_mbc',       l:'Biochar (kg/h)'},
+    {k:'r_U1',        l:'Exhaust heat (kW)'},
+    {k:'r_above_adp', l:'Recoverable (kW)'},
+    {k:'r_rpct',      l:'Recovery (%)'},
+    {k:'r_Q_supp',    l:'Q_supp (kW)'},
+  ];
+
+  const thStyle = `font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+                   color:var(--text3);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border2);
+                   white-space:nowrap;`;
+  const tdStyle = `font-family:var(--mono);font-size:12px;padding:6px 12px;text-align:right;
+                   color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;`;
+  const tdLStyle= `font-family:var(--mono);font-size:12px;padding:6px 12px;text-align:left;
+                   color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;`;
+
+  let html = `<thead><tr>
+    <th style="${thStyle}text-align:left;">Parameter</th>`;
+  scs.forEach(sc => {
+    html += `<th style="${thStyle}">
+      <div>${sc.name}</div>
+      <div style="font-weight:400;color:var(--text3);font-size:9px;margin-top:2px;">${new Date(sc.timestamp).toLocaleDateString()}</div>
+    </th>`;
+  });
+  html += `<th style="${thStyle}"></th></tr></thead><tbody>`;
+
+  preview.forEach(({k, l}) => {
+    html += `<tr><td style="${tdLStyle}color:var(--text2);">${l}</td>`;
+    scs.forEach(sc => {
+      const v = sc[k];
+      let disp = v == null ? '—' :
+                 typeof v === 'number' ? (Math.abs(v) < 0.01 ? v.toFixed(4) : v.toLocaleString('en-US',{maximumFractionDigits:1})) :
+                 String(v);
+      if (k==='mc') disp = v != null ? (v*100).toFixed(0)+'%' : '—';
+      if (k==='r_rpct') disp = v != null ? v.toFixed(1)+'%' : '—';
+      html += `<td style="${tdStyle}">${disp}</td>`;
+    });
+    html += `<td style="${tdStyle}"></td></tr>`;
+  });
+
+  // Action row
+  html += `<tr><td style="${tdLStyle}"></td>`;
+  scs.forEach(sc => {
+    html += `<td style="${tdStyle}vertical-align:middle;">
+      <button onclick="loadScenarioIntoModel('${sc.name.replace(/'/g,"\\'")}')"
+        style="margin-right:6px;padding:3px 8px;background:var(--green-muted);border:1px solid var(--green-dim);
+               border-radius:3px;color:var(--green);font-family:var(--mono);font-size:10px;cursor:pointer;">
+        Load
+      </button>
+      <button onclick="deleteScenario('${sc.name.replace(/'/g,"\\'")}')"
+        style="padding:3px 8px;background:var(--bg4);border:1px solid var(--border2);
+               border-radius:3px;color:var(--red);font-family:var(--mono);font-size:10px;cursor:pointer;">
+        Delete
+      </button>
+    </td>`;
+  });
+  html += `<td></td></tr></tbody>`;
+  tbl.innerHTML = html;
+}
+
+function exportCSV() {
+  const scs = loadScenarios();
+  if (!scs.length) {
+    document.getElementById('scenario-save-msg').textContent = 'No scenarios to export.';
+    return;
+  }
+  const fields = scenarioFields();
+  // Header rows: section + label
+  const sections = fields.map(f => f.s);
+  const labels   = fields.map(f => f.l);
+  const rows = [
+    ['Section', ...scs.map(s => s.name)],
+    ['Timestamp', ...scs.map(s => new Date(s.timestamp).toLocaleString())],
+    ['', ...scs.map(() => '')],  // blank spacer
+    ...fields.map(f => [
+      f.l,
+      ...scs.map(sc => {
+        const v = sc[f.k];
+        if (v == null) return '';
+        if (typeof v === 'number') return v.toFixed(4);
+        return String(v);
+      })
+    ])
+  ];
+
+  const csv = rows.map(row =>
+    row.map(cell => {
+      const s = String(cell);
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `pyrolysis_scenarios_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function T(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="T('${name}')"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'flows' && lastResult) updateCharts(lastResult);
+  if (name === 'scenarios') renderScenariosTable();
+}
+
+// Initial render in case tab is already active
+renderScenariosTable();
+</script>
+</body>
+</html>
