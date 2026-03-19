@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pyrolysis Mass & Energy Balance</title>
+<title>H.O.T. M.E.S.S. — Heat & Output Tracker for Mass-Energy Stoichiometric Simulation</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
@@ -15,12 +15,41 @@
     --text: #e2e8e0; --text2: #9ca89a; --text3: #5a6358;
     --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
   }
+  :root.light {
+    --bg: #f5f0e8; --bg2: #ede7d9; --bg3: #e4ddd0; --bg4: #d9d2c4;
+    --border: #c8bfb0; --border2: #b8ae9e;
+    --green: #1a5c35; --green-dim: #22753f; --green-muted: #c8e6d4;
+    --amber: #92580a; --amber-dim: #b06b0d; --red: #9b2335; --blue: #1a4a7a;
+    --text: #1e2420; --text2: #3d4e45; --text3: #7a8a7d;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+  }
+  .theme-toggle {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+    user-select: none;
+  }
+  .theme-toggle-track {
+    width: 36px; height: 18px; border-radius: 9px;
+    background: var(--bg4); border: 1px solid var(--border2);
+    position: relative; transition: background .2s;
+    flex-shrink: 0;
+  }
+  .theme-toggle-thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--green); transition: left .2s, background .2s;
+  }
+  :root.light .theme-toggle-thumb { left: 20px; }
+  :root.light .theme-toggle-track { background: var(--green-muted); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; min-height: 100vh; }
 
-  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: baseline; gap: 16px; }
-  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--green); text-transform: uppercase; }
-  header span { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; gap: 16px; min-width: 0; }
+  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--green); text-transform: uppercase; flex-shrink: 0; }
+  header .header-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header .header-controls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  @media (max-width: 900px) { header .header-sub { display: none; } }
 
   .layout { display: grid; grid-template-columns: 308px 1fr; min-height: calc(100vh - 57px); }
 
@@ -122,8 +151,15 @@
 </head>
 <body>
 <header>
-  <h1>Pyrolysis Mass &amp; Energy Balance</h1>
-  <span>Pyrolysis + Thermal Oxidizer System // Live Calculator</span>
+  <h1>H.O.T. M.E.S.S.</h1>
+  <span class="header-sub">Heat &amp; Output Tracker for Mass-Energy Stoichiometric Simulation // <span style="color:var(--amber);">Estimate only</span></span>
+  <div class="header-controls">
+    <a href="simple.html" style="font-family:var(--mono);font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border2);padding:3px 10px;border-radius:3px;letter-spacing:.06em;white-space:nowrap;" title="N.V.D. — Not Very Detailed">🔥 N.V.D.</a>
+    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">
+      <span id="theme-label">Dark</span>
+      <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
+    </div>
+  </div>
 </header>
 
 <div class="layout">
@@ -174,6 +210,8 @@
   <div class="section-label">Combustion</div>
   <div class="input-group">
     <div class="input-row"><label>Excess O₂ (dry exhaust mol frac)</label><input type="number" id="i_xs" value="0.05" step="0.005"><span class="unit">–</span></div>
+    <div class="input-row"><label>Exhaust HX efficiency</label><input type="number" id="i_hxEff" value="0.90" step="0.01" min="0" max="1" oninput="if(parseFloat(this.value)>1)this.value='1';if(parseFloat(this.value)<0)this.value='0';"><span class="unit">–</span></div>
+    <div class="note">Fraction of recoverable heat actually delivered. Losses = (1 − η) × W19.</div>
   </div>
 
   <div class="section-label">Thermophysical Properties</div>
@@ -221,10 +259,10 @@
 <main style="padding: 24px 28px 60px; overflow-y: auto;">
   <div class="summary-bar">
     <div class="kpi"><div class="kpi-label">Dry Feed</div><div class="kpi-value" id="k_dry">—</div><div class="kpi-unit">kg/h</div></div>
-    <div class="kpi"><div class="kpi-label">Biochar Output</div><div class="kpi-value" id="k_bc">—</div><div class="kpi-unit">kg/h</div></div>
+    <div class="kpi"><div class="kpi-label">Biochar Output</div><div class="kpi-value" id="k_bc">—</div><div class="kpi-unit">kg/h</div><div id="k_bc_ash" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px;"></div></div>
     <div class="kpi"><div class="kpi-label">Air Intake</div><div class="kpi-value" id="k_air">—</div><div class="kpi-unit">kg/h</div></div>
     <div class="kpi"><div class="kpi-label">Total Exhaust Heat</div><div class="kpi-value" id="k_ex">—</div><div class="kpi-unit">kW</div></div>
-    <div class="kpi"><div class="kpi-label">Recoverable Heat</div><div class="kpi-value" id="k_rec">—</div><div class="kpi-unit">kW</div></div>
+    <div class="kpi"><div class="kpi-label">Net Delivered Heat</div><div class="kpi-value" id="k_rec">—</div><div class="kpi-unit">kW</div></div>
     <div class="kpi" id="kpi_supp" style="display:none;border-color:#d97706;">
       <div class="kpi-label" id="k_supp_label" style="color:var(--amber)">Suppl. Heat</div>
       <div class="kpi-value" id="k_supp" style="color:var(--amber)">—</div>
@@ -237,8 +275,9 @@
     <div class="tab" onclick="T('energy')">Energy Balance</div>
     <div class="tab" onclick="T('exhaust')">Exhaust Recovery</div>
     <div class="tab" onclick="T('sens')">Moisture Sensitivity</div>
-    <div class="tab" onclick="T('flows')">Flow Charts</div>
+    <div class="tab" onclick="T('flows')">Charts</div>
     <div class="tab" onclick="T('sources')">Sources</div>
+    <div class="tab" onclick="T('methods')">Methods</div>
     <div class="tab" onclick="T('scenarios')">Scenarios</div>
   </div>
 
@@ -349,6 +388,8 @@
         <table class="dt">
           <tr><td>Total exhaust heat [U1]</td><td id="er_tot">—</td><td class="u">kW</td></tr>
           <tr class="hl"><td>Recoverable heat [W19]</td><td id="er_W19">—</td><td class="u">kW</td></tr>
+          <tr><td>Heat exchanger losses [(1−η) × W19]</td><td id="er_hx_loss">—</td><td class="u">kW</td></tr>
+          <tr class="hl"><td>Net delivered heat [η × W19]</td><td id="er_net_rec">—</td><td class="u">kW</td></tr>
           <tr><td>Sensible 100–150°C zone [−W16] — acid risk</td><td id="er_W16">—</td><td class="u">kW</td></tr>
           <tr><td>Latent — all water condensation [T17] — requires condenser</td><td id="er_T17">—</td><td class="u">kW</td></tr>
           <tr><td>Condensed water sensible — 100°C → T_ref [T18]</td><td id="er_T18">—</td><td class="u">kW</td></tr>
@@ -404,6 +445,35 @@
           <svg id="wf-energy" width="100%" style="display:block;overflow:visible;"></svg>
         </div>
       </div>
+    </div>
+    <div class="two-col" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-header"><span class="dot green"></span>Exhaust heat — kW
+          <button onclick="exportChartPNG('wf-exhaust','exhaust_cascade')" style="margin-left:auto;padding:3px 10px;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;">↓ PNG</button>
+        </div>
+        <div class="card-body" style="padding:14px 14px 8px;">
+          <svg id="wf-exhaust" width="100%" style="display:block;overflow:visible;"></svg>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="dot blue"></span>Exhaust heat by moisture content — kW
+          <button onclick="exportChartPNG('wf-moisture','moisture_sensitivity')" style="margin-left:auto;padding:3px 10px;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;">↓ PNG</button>
+        </div>
+        <div class="card-body" style="padding:14px 14px 8px;">
+          <svg id="wf-moisture" width="100%" style="display:block;overflow:visible;"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-header"><span class="dot amber"></span>Energy balance by moisture content — kW
+          <button onclick="exportChartPNG('wf-energy-moisture','energy_by_moisture')" style="margin-left:auto;padding:3px 10px;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;">↓ PNG</button>
+        </div>
+        <div class="card-body" style="padding:14px 14px 8px;">
+          <svg id="wf-energy-moisture" width="100%" style="display:block;overflow:visible;"></svg>
+        </div>
+      </div>
+      <div></div>
     </div>
   </div>
 
@@ -527,6 +597,191 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- METHODS -->
+  <div class="tc" id="tab-methods">
+
+    <div class="card mb16">
+      <div class="card-header"><span class="dot blue"></span>Overview</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2;">
+        The model solves a steady-state mass and energy balance for a pyrolysis reactor paired with a thermal oxidiser (TO). Given feedstock composition and moisture content, it solves for either the TO exit temperature or the biochar conversion rate such that the energy balance closes exactly — all chemical energy in equals the sum of all heat sinks including exhaust cooling to the reference temperature. All flow quantities are in kg/h; all energy terms in kW (= kJ/s). The reference temperature T_ref is the inlet condition for all streams entering at ambient conditions.
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div class="card-header"><span class="dot amber"></span>1 — Mass Balance</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.2;">
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Feed streams</div>
+        <div>ṁ_fw &nbsp;&nbsp;&nbsp;&nbsp; = wet feed rate (kg/h) &nbsp;&nbsp; [user input]</div>
+        <div>MC &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = moisture fraction (kg water / kg wet feed) &nbsp;&nbsp; [user input]</div>
+        <div>ṁ_dry &nbsp;&nbsp;&nbsp; = ṁ_fw × (1 − MC) &nbsp;&nbsp; [dry biomass flow rate]</div>
+        <div>ṁ_water = ṁ_fw × MC &nbsp;&nbsp; [feed moisture flow rate]</div>
+        <div>x_ash &nbsp;&nbsp;&nbsp; = ash fraction of dry feed (kg ash / kg dry) &nbsp;&nbsp; [user input; only tracked when &gt; 1%]</div>
+        <div>ṁ_ash &nbsp;&nbsp;&nbsp; = ṁ_dry × x_ash &nbsp;&nbsp; [inert ash; passes through to biochar unchanged]</div>
+        <div>ṁ_org &nbsp;&nbsp;&nbsp; = ṁ_dry × (1 − x_ash) &nbsp;&nbsp; [reactive organic fraction of dry feed]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Biochar</div>
+        <div>rc &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = conversion rate (kg organic char / kg organic feed) &nbsp;&nbsp; [user input or solved]</div>
+        <div>ṁ_bc_org = ṁ_org × rc &nbsp;&nbsp; [organic fraction of biochar]</div>
+        <div>ṁ_bc &nbsp;&nbsp;&nbsp;&nbsp; = ṁ_bc_org + ṁ_ash &nbsp;&nbsp; [total biochar output = organic char + all ash]</div>
+        <div style="color:var(--text3);font-size:11px;margin-top:2px;">Because ash passes through regardless of rc, high-ash feedstocks (e.g. activated sludge at 38% ash) produce large biochar outputs that are dominated by inert mineral material.</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Biochar elemental composition</div>
+        <div>x_C_bc &nbsp;&nbsp; = carbon mass fraction of ash-free biochar &nbsp;&nbsp; [user input]</div>
+        <div>r_HC &nbsp;&nbsp;&nbsp;&nbsp; = molar H:C ratio of biochar &nbsp;&nbsp; [user input]</div>
+        <div>ṁ_C_bc &nbsp;&nbsp; = ṁ_bc_org × x_C_bc</div>
+        <div>ṁ_H_bc &nbsp;&nbsp; = ṁ_C_bc × (r_HC / 12) &nbsp;&nbsp; [mass H:C = molar H:C × (1/12) since MW_C = 12, MW_H = 1]</div>
+        <div>ṁ_O_bc &nbsp;&nbsp; = ṁ_bc_org − ṁ_C_bc − ṁ_H_bc &nbsp;&nbsp; [oxygen in biochar by difference]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Syngas (volatile fraction) elemental flows</div>
+        <div>x_C, x_H, x_O = elemental mass fractions of ash-free dry biomass &nbsp;&nbsp; [user inputs; must sum to 1]</div>
+        <div>ṁ_C_sg &nbsp;&nbsp; = ṁ_org × x_C − ṁ_C_bc &nbsp;&nbsp; [carbon leaving with syngas = total in − retained in char]</div>
+        <div>ṁ_H_sg &nbsp;&nbsp; = ṁ_org × x_H − ṁ_H_bc</div>
+        <div>ṁ_O_sg &nbsp;&nbsp; = ṁ_org × x_O − ṁ_O_bc</div>
+        <div>ṁ_sg &nbsp;&nbsp;&nbsp;&nbsp; = ṁ_org − ṁ_bc_org &nbsp;&nbsp; [total syngas mass flow; includes steam from feed moisture]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Combustion products (complete combustion assumed)</div>
+        <div>ṁ_CO₂ &nbsp;&nbsp;&nbsp; = (44/12) × ṁ_C_sg &nbsp;&nbsp; [C + O₂ → CO₂; MW ratio 44:12]</div>
+        <div>ṁ_H₂O_c &nbsp; = (36/4) × ṁ_H_sg &nbsp;&nbsp; [2H₂ + O₂ → 2H₂O; 4 g elemental H produces 36 g H₂O]</div>
+        <div>ṁ_H₂O_ex = ṁ_H₂O_c + ṁ_water &nbsp;&nbsp; [total water in exhaust = combustion water + feed moisture]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Combustion air</div>
+        <div>x_O₂_ex &nbsp; = target excess O₂ mole fraction in dry exhaust &nbsp;&nbsp; [user input; consistent with flue gas analysers]</div>
+        <div>ṁ_O₂_gross = (32/12)×ṁ_C_sg + (32/4)×ṁ_H_sg &nbsp;&nbsp; [O₂ required to combust all C and H in syngas]</div>
+        <div style="color:var(--text3);font-size:11px;margin-top:2px;">Derivation: C needs 32/12 kg O₂ per kg C; 4 g elemental H needs 32 g O₂ (from 2H₂ + O₂ → 2H₂O), so 32/4 per kg H.</div>
+        <div style="margin-top:4px;">ṁ_O₂_net &nbsp; = ṁ_O₂_gross − ṁ_O_sg &nbsp;&nbsp; [credit: O already in syngas reduces air O₂ demand]</div>
+        <div>Ṁ_O₂_net &nbsp; = ṁ_O₂_net / 32 &nbsp;&nbsp; [convert to kmol/h; MW_O₂ = 32]</div>
+        <div>Ṁ_CO₂ &nbsp;&nbsp;&nbsp;&nbsp; = ṁ_CO₂ / 44 &nbsp;&nbsp; [kmol/h]</div>
+        <div>N &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 79/21 = 3.762 &nbsp;&nbsp; [molar N₂:O₂ ratio in dry air]</div>
+        <div>Ṁ_dry_ex &nbsp; = (N×Ṁ_O₂_net + Ṁ_CO₂) / (1 − x_O₂_ex×(N+1)) &nbsp;&nbsp; [total dry exhaust molar flow; solved from excess O₂ target]</div>
+        <div>ṁ_N₂ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = (79/21) × Ṁ_O₂_total × 28 &nbsp;&nbsp; [N₂ from air; MW_N₂ = 28]</div>
+        <div>ṁ_air &nbsp;&nbsp;&nbsp;&nbsp; = ṁ_N₂ + ṁ_O₂_stoich + ṁ_O₂_excess</div>
+        <div>ṁ_exhaust_wet = ṁ_CO₂ + ṁ_H₂O_ex + ṁ_N₂ + ṁ_O₂_excess</div>
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div class="card-header"><span class="dot amber"></span>2 — Energy Balance</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.2;">
+        <div>All energy terms are in kW. Converting kg/h to kW: divide by 3600 (seconds per hour). The balance is: T1 = T21 (source = sum of all sinks). The solver drives the closing term T23 = T1 − T21 to zero.</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Source</div>
+        <div>HHV_bm &nbsp; = higher heating value of dry biomass, whole-sample basis &nbsp;&nbsp; [kJ/kg; user input]</div>
+        <div>T1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = ṁ_dry × HHV_bm / 3600 &nbsp;&nbsp; [chemical energy input rate, kW]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Process sinks</div>
+        <div>Cp_w &nbsp;&nbsp;&nbsp;&nbsp; = 4.18 kJ/kgK &nbsp;&nbsp; [specific heat of liquid water]</div>
+        <div>H_vap &nbsp;&nbsp;&nbsp; = 2257 kJ/kg &nbsp;&nbsp;&nbsp; [latent heat of vaporisation of water at 100°C]</div>
+        <div>Cp_steam &nbsp; = 2.00 kJ/kgK &nbsp;&nbsp; [specific heat of steam]</div>
+        <div>T_ref &nbsp;&nbsp;&nbsp;&nbsp; = reference (ambient inlet) temperature, °C &nbsp;&nbsp; [user input; typically 25°C]</div>
+        <div>T_reac &nbsp;&nbsp;&nbsp; = pyrolysis reactor temperature, °C &nbsp;&nbsp; [user input]</div>
+        <div>T5 = ṁ_water × Cp_w × (100 − T_ref) / 3600 &nbsp;&nbsp; [heat liquid water from T_ref to boiling point]</div>
+        <div>T6 = ṁ_water × H_vap / 3600 &nbsp;&nbsp; [vaporise feed moisture at 100°C]</div>
+        <div>T7 = ṁ_water × Cp_steam × (T_reac − 100) / 3600 &nbsp;&nbsp; [heat steam from 100°C to T_reac]</div>
+        <div>Cp_bm &nbsp;&nbsp;&nbsp; = specific heat of dry biomass &nbsp;&nbsp; [kJ/kgK; user input; ~1.5 for wood]</div>
+        <div>T9 = ṁ_dry × Cp_bm × (T_reac − T_ref) / 3600 &nbsp;&nbsp; [heat dry biomass from T_ref to T_reac]</div>
+        <div>ΔH_rxn &nbsp;&nbsp; = heat of pyrolysis reaction, endothermic &nbsp;&nbsp; [kJ/kg dry feed; user input; ~300 kJ/kg]</div>
+        <div>T10 = ṁ_dry × ΔH_rxn / 3600 &nbsp;&nbsp; [energy consumed by pyrolysis]</div>
+        <div>f_loss &nbsp;&nbsp;&nbsp; = reactor loss fraction (fraction of T1) &nbsp;&nbsp; [user input; radiation + convection from reactor walls]</div>
+        <div>T_loss = f_loss × T1</div>
+        <div>HHV_bc &nbsp;&nbsp; = higher heating value of ash-free biochar &nbsp;&nbsp; [kJ/kg; user input]</div>
+        <div>T11 = ṁ_bc_org × HHV_bc / 3600 &nbsp;&nbsp; [chemical energy leaving with biochar; ash-free basis only]</div>
+        <div>Cp_char &nbsp;&nbsp; = 1.0 kJ/kgK &nbsp;&nbsp; [specific heat of biochar; Antal &amp; Grønli 2003]</div>
+        <div>T12 = ṁ_bc × Cp_char × (T_reac − T_ref) / 3600 &nbsp;&nbsp; [sensible heat of total biochar leaving at T_reac]</div>
+        <div>T_TO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = thermal oxidiser exit temperature, °C &nbsp;&nbsp; [solved or user input depending on mode]</div>
+        <div>Cp_sg &nbsp;&nbsp;&nbsp;&nbsp; = specific heat of syngas &nbsp;&nbsp; [kJ/kgK; user input; ~2.1 for wet pyrolysis gas at 500°C]</div>
+        <div>T13 = ṁ_sg × Cp_sg × (T_TO − T_reac) / 3600 &nbsp;&nbsp; [syngas sensible heat, reactor temp to TO exit]</div>
+        <div>Cp_air(T) = 0.232×Cp_O₂(T) + 0.768×Cp_N₂(T) &nbsp;&nbsp; [air Cp from Shomate, evaluated at mean of T_ref and T_TO]</div>
+        <div>T14 = ṁ_air × Cp_air × (T_TO − T_ref) / 3600 &nbsp;&nbsp; [sensible heat of combustion air]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Exhaust heat sinks — cooling wet exhaust from T_TO to T_ref</div>
+        <div>T_ADP &nbsp;&nbsp;&nbsp; = acid dew point = 150°C &nbsp;&nbsp; [below this, acid condensation risk in heat exchanger]</div>
+        <div>T_COND &nbsp;&nbsp; = water condensation temperature = 100°C</div>
+        <div>Cp_hi &nbsp;&nbsp;&nbsp;&nbsp; = mixture Cp of wet exhaust at mean(T_TO, 150°C) &nbsp;&nbsp; [from Shomate; see Section 3]</div>
+        <div>Cp_adp &nbsp;&nbsp;&nbsp; = mixture Cp of wet exhaust at mean(150°C, 100°C)</div>
+        <div>Cp_dry &nbsp;&nbsp;&nbsp; = mixture Cp of dry exhaust at mean(100°C, T_ref)</div>
+        <div>T16 = ṁ_exhaust_wet × [Cp_hi×(T_TO−150) + Cp_adp×(150−100)] / 3600 &nbsp;&nbsp; [wet exhaust sensible, T_TO→100°C]</div>
+        <div>T17 = ṁ_H₂O_ex × H_vap / 3600 &nbsp;&nbsp; [latent heat — all water in exhaust condensing at 100°C]</div>
+        <div>T18 = ṁ_H₂O_ex × Cp_w × (100 − T_ref) / 3600 &nbsp;&nbsp; [condensed water sensible heat, 100°C→T_ref]</div>
+        <div>T19 = (ṁ_exhaust_wet − ṁ_H₂O_ex) × Cp_dry × (100 − T_ref) / 3600 &nbsp;&nbsp; [dry gas only sensible heat below 100°C]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Closing term</div>
+        <div>T21 = T5+T6+T7+T9+T10+T_loss+T11+T12+T13+T14+T16+T17+T18+T19 &nbsp;&nbsp; [sum of all sinks]</div>
+        <div>T23 = T1 − T21 &nbsp;&nbsp; [closing term; solver drives this to zero by adjusting T_TO or rc]</div>
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div class="card-header"><span class="dot"></span>3 — Specific Heat Model (Shomate / JANAF)</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.2;">
+        <div>Exhaust gas Cp is computed from the actual exhaust mass-fraction composition at each temperature zone using the JANAF Shomate equation (Chase 1998):</div>
+        <div style="margin:8px 0 8px 16px;">Cp_i(T) = [A + B·t + C·t² + D·t³ + E/t²] / MW_i &nbsp;&nbsp; [kJ/kgK] &nbsp;&nbsp; t = T(K)/1000</div>
+        <div>Species included: CO₂ (MW=44), H₂O vapour (MW=18), N₂ (MW=28), O₂ (MW=32).</div>
+        <div style="margin-top:8px;">Mixture Cp = Σ (x_i × Cp_i) where x_i = mass fraction of species i in the exhaust.</div>
+        <div style="margin-top:8px;">Three cascade zones, each evaluated at its mean temperature:</div>
+        <div style="margin:4px 0 2px 16px;">Cp_hi &nbsp;&nbsp; — wet exhaust, mean(T_TO, 150°C) &nbsp;&nbsp; [above acid dew point; recoverable zone]</div>
+        <div style="margin:4px 0 2px 16px;">Cp_adp &nbsp; — wet exhaust, mean(150°C, 100°C) &nbsp;&nbsp; [acid risk zone]</div>
+        <div style="margin:4px 0 2px 16px;">Cp_dry &nbsp; — dry exhaust gas only, mean(100°C, T_ref) &nbsp;&nbsp; [water condensed out]</div>
+        <div style="margin-top:8px;">Air Cp: Cp_air = 0.232×Cp_O₂ + 0.768×Cp_N₂ at mean(T_ref, T_TO). &nbsp;&nbsp; [23.2% O₂ by mass, 76.8% N₂ by mass]</div>
+        <div style="color:var(--text3);font-size:11px;margin-top:4px;">Note: 21% O₂ / 79% N₂ by volume (molar); converting to mass fractions using MW gives 23.2% / 76.8%.</div>
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div class="card-header"><span class="dot"></span>4 — Solve Logic</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.2;">
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Mode A — Solve for T_TO (rc fixed by user)</div>
+        <div>T23 = 0 rearranges to a linear equation in T_TO. The T_TO-dependent terms are T13, T14, and the T_TO-dependent part of T16 (above the acid dew point). Rearranging:</div>
+        <div style="margin:8px 16px;">T_TO = [3600×(T1−fixed) + ṁ_sg×Cp_sg×T_reac + ṁ_air×Cp_air×T_ref + Cp_hi×ṁ_exhaust_wet×T_ADP]</div>
+        <div style="margin:0 16px 8px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / [ṁ_sg×Cp_sg + ṁ_air×Cp_air + Cp_hi×ṁ_exhaust_wet]</div>
+        <div>where "fixed" = T5+T6+T7+T9+T10+T_loss+T11+T12+T17+T18+T19+Cp_adp×ṁ_exhaust_wet×(T_ADP−T_COND)/3600.</div>
+        <div style="margin-top:8px;">Since Cp_hi depends on T_TO (through its mean zone temperature), this is solved by fixed-point iteration starting at T_TO = 700°C. Five passes converge T23 to &lt; 0.001 kW.</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Mode B — Solve for rc (T_TO fixed by user)</div>
+        <div>All mass flows and hence all T-terms are linear in rc. T23(rc) is therefore linear, and the root is found analytically by evaluating at rc = 0 and rc = 1:</div>
+        <div style="margin:8px 16px;">rc* = −T23(rc=0) / [T23(rc=1) − T23(rc=0)]</div>
+
+        <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:14px;margin-bottom:8px;">Infeasibility and remedies</div>
+        <div>T_TO_min = combustion floor temperature &nbsp;&nbsp; [user input; default 650°C; minimum for stable TO operation]</div>
+        <div>The system is infeasible when the autothermal T_TO &lt; T_TO_min. Two remedies are available:</div>
+        <div style="margin:6px 0 2px 16px;">Option A — find rc* such that solveTto(rc*) = T_TO_min exactly. This is a linear solve:</div>
+        <div style="margin:0 32px 6px;">f(rc) = Num(rc) − T_TO_min × Den(rc) = 0 &nbsp;&nbsp; [both Num and Den are linear in rc]</div>
+        <div style="margin:2px 0 2px 16px;">Option A is only available when rc* ∈ [0, 1]. If rc* &lt; 0 the feedstock cannot sustain autothermal combustion at any conversion rate and Option B is the only path.</div>
+        <div style="margin:6px 0 2px 16px;">Option B — hold rc at the user value, clamp T_TO = T_TO_min, and compute supplemental heat:</div>
+        <div style="margin:0 32px 6px;">Q_supp = −T23 &nbsp;&nbsp; [evaluated at rc_user, T_TO = T_TO_min]</div>
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div class="card-header"><span class="dot green"></span>5 — Exhaust Heat Recovery</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.2;">
+        <div>U1 = T16 + T17 + T18 + T19 &nbsp;&nbsp; [total exhaust enthalpy; energy in exhaust stream cooling from T_TO to T_ref]</div>
+        <div style="margin-top:8px;">Not all of U1 is practically recoverable. The cascade breaks into:</div>
+        <div style="margin:6px 0 2px 16px;"><span style="color:var(--green);">W19 (recoverable)</span> = Cp_hi × ṁ_exhaust_wet × (T_TO − T_ADP) / 3600 &nbsp;&nbsp; [sensible heat above acid dew point]</div>
+        <div style="margin:4px 0 2px 16px;"><span style="color:var(--amber);">−W16 (acid risk zone)</span> = T16 − W19 &nbsp;&nbsp; [sensible heat between T_ADP and T_COND; acid condensation risk]</div>
+        <div style="margin:4px 0 2px 16px;"><span style="color:var(--red);">T17 (latent loss)</span> — water condensation at 100°C; recovery requires condensing heat exchanger</div>
+        <div style="margin:4px 0 2px 16px;">T18 + T19 — sensible heat below 100°C; rarely recovered in practice</div>
+        <div style="margin-top:8px;">Recovery fraction = W19 / U1</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="dot red"></span>6 — Key Assumptions</div>
+      <div class="card-body" style="font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.2;">
+        <div>— Steady-state operation at nominal throughput. No startup, shutdown, or turndown modelling.</div>
+        <div>— Complete combustion of syngas in the thermal oxidiser (100% combustion efficiency).</div>
+        <div>— Pyrolysis treated as a single endothermic step at T_reac. Char yield is specified directly via rc; kinetics are not modelled.</div>
+        <div>— Ash is chemically inert and passes entirely to biochar. No ash volatilisation or entrainment in exhaust gas.</div>
+        <div>— Biomass elemental composition modelled as C, H, O only. N and S neglected (small for woody biomass; more significant for sludge).</div>
+        <div>— Acid dew point fixed at T_ADP = 150°C. For high-sulphur feedstocks the actual dew point may be considerably higher.</div>
+        <div>— Air is dry: 21% O₂ / 79% N₂ by volume. Ambient humidity not modelled.</div>
+        <div>— Reactor losses (T_loss = f_loss × T1) are uniform; spatial distribution within the reactor not modelled.</div>
+        <div>— Fresh ambient air at T_ref enters the TO; no air preheat.</div>
+      </div>
+    </div>
+
   </div>
 
 </main>
@@ -749,6 +1004,8 @@ function calcAt(inp, rc, Tto) {
     above_adp: W19, acid_zone: -W16, latent: T17,
     T18_water: T18, T19_dry: T19,
     low_zone: T18+T19, non_rec: -W16+T17+T18+T19, rpct: W19/U1,
+    hx_loss: W19 * (1 - (inp.hxEff || 0.9)),
+    net_rec:  W19 * (inp.hxEff || 0.9),
     U1,   // total exhaust enthalpy (for recovery tab)
     cps
   };
@@ -930,7 +1187,7 @@ function getInp() {
     xC:    g('i_xC'),  xH:    g('i_xH'),  xO:    g('i_xO'),
     xash:  g('i_xash'),
     xCbc:  g('i_xCbc'),rHC:   g('i_rHC'), HHVbc: g('i_HHVbc'),
-    xs:    g('i_xs'),  HHVbm: g('i_HHVbm'),
+    xs:    g('i_xs'),  hxEff: Math.min(1, Math.max(0, g('i_hxEff') || 0.9)),  HHVbm: g('i_HHVbm'),
     cpBM:  g('i_cpBM'),cpSG:  g('i_cpSG'),
     dH:    g('i_dH'),  lossF: Math.min(0.5, Math.max(0, g('i_lossF') || 0)),  Tr:    g('i_Tr'),  Treac: g('i_Treac'), Tto_min: g('i_Tto_min')
   };
@@ -1058,7 +1315,11 @@ function run() {
 
   // KPIs
   S('k_dry', r.md,  0); S('k_bc',  r.mbc, 0);
-  S('k_air', r.mair,0); S('k_ex',  r.U1,  0); S('k_rec', r.above_adp, 0);
+  { const ashEl = document.getElementById('k_bc_ash');
+    if (ashEl) ashEl.textContent = r.ash_active && r.mbc > 0
+      ? (r.m_ash / r.mbc * 100).toFixed(0) + '% ash'
+      : ''; }
+  S('k_air', r.mair,0); S('k_ex', r.U1, 0); S('k_rec', r.net_rec, 0);
 
   // Mass
   S('m_fw',r.fw,0); S('m_dry',r.md,1); S('m_wat',r.mw,1); S('m_air',r.mair,1); S('m_in',r.tin,1);
@@ -1107,9 +1368,8 @@ function run() {
 
   // Exhaust recovery
   S('er_tot',r.U1,1); S('er_W19',r.above_adp,1); S('er_W16',r.acid_zone,1);
-  S('er_T17',r.latent,1);
-  S('er_T18',r.T18_water,1);
-  S('er_T19',r.T19_dry,1);
+  S('er_T17',r.latent,1); S('er_T18',r.T18_water,1); S('er_T19',r.T19_dry,1);
+  S('er_hx_loss',r.hx_loss,1); S('er_net_rec',r.net_rec,1);
   S('er_nr',r.non_rec,1);
   document.getElementById('er_pct').textContent = fmt(r.rpct*100,1);
   document.getElementById('er_Tto').textContent = fmt(r.Tto, 1);
@@ -1160,11 +1420,13 @@ function run() {
   const dAdp = sN.above_adp - s0.above_adp, dLat = sN.T6 - s0.T6;
   document.getElementById('mist').innerHTML =
     `Moving from 0% → 40% moisture (1,000 kg/h dry feed basis, rc = ${fmt(sens_rc,2)}):<br>
-     Recoverable heat: <span style="color:var(--green)">${fmt(s0.above_adp,0)} kW</span> → <span style="color:var(--amber)">${fmt(sN.above_adp,0)} kW</span> &nbsp;(${fmt(dAdp/s0.above_adp*100,1)}%)<br>
+     Recoverable heat (W19): <span style="color:var(--green)">${fmt(s0.above_adp,0)} kW</span> → <span style="color:var(--amber)">${fmt(sN.above_adp,0)} kW</span> &nbsp;(${fmt(dAdp/s0.above_adp*100,1)}%)<br>
+     Net delivered heat (η×W19): <span style="color:var(--green)">${fmt(s0.net_rec,0)} kW</span> → <span style="color:var(--amber)">${fmt(sN.net_rec,0)} kW</span><br>
      Total exhaust: ${fmt(s0.U1,0)} kW → ${fmt(sN.U1,0)} kW<br>
      Primary driver: irrecoverable latent heat increases by <span style="color:var(--red)">${fmt(dLat,0)} kW</span><br>
      Air demand change: <span style="color:var(--blue)">${fmt(sN.mair-s0.mair,0)} kg/h</span>`;
 
+  r.snaps = snaps;   // attach to result so updateCharts can draw the moisture chart
   updateCharts(r);
 }
 
@@ -1245,6 +1507,8 @@ function drawWaterfall(svgId, steps, unit) {
   const chartH = 220;
   const H = chartH + PAD.top + PAD.bottom;
 
+  const C = chartColours();
+
   // Find scale — simulate bar positions to get true min/max
   let runMax = 0, runMin = 0, runCur = 0;
   steps.forEach(s => {
@@ -1313,9 +1577,9 @@ function drawWaterfall(svgId, steps, unit) {
     const y = yScale(v);
     const label = fmtV(v);
     gridLines += `<line x1="${PAD.left}" y1="${y}" x2="${W - PAD.right}" y2="${y}"
-      stroke="#2e3430" stroke-width="0.5"/>
+      stroke="${C.gridLine}" stroke-width="0.5"/>
       <text x="${PAD.left - 4}" y="${y + 4}" text-anchor="end"
-        font-family="IBM Plex Mono,monospace" font-size="10" fill="#5a6358">${label}</text>`;
+        font-family="IBM Plex Mono,monospace" font-size="10" fill="${C.gridText}">${label}</text>`;
   }
 
   // Connector lines between bars
@@ -1334,7 +1598,7 @@ function drawWaterfall(svgId, steps, unit) {
       yConn = yScale(b.top_v);     // normal: connect at running total
     }
     connectors += `<line x1="${xR}" y1="${yConn}" x2="${xL}" y2="${yConn}"
-      stroke="#3a4038" stroke-width="0.75" stroke-dasharray="3,2"/>`;
+      stroke="${C.gridLine}" stroke-width="0.75" stroke-dasharray="3,2"/>`;
   }
 
   // Bars + labels
@@ -1353,7 +1617,7 @@ function drawWaterfall(svgId, steps, unit) {
     // value label — always above the top of the bar
     const labelY = y1 - 5;
     barsSVG += `<text x="${xCenter(b.i)}" y="${labelY}" text-anchor="middle"
-      font-family="IBM Plex Mono,monospace" font-size="10" fill="#9ca89a">
+      font-family="IBM Plex Mono,monospace" font-size="10" fill="${C.barText}">
       ${b.val < 0 ? '−' : b.isTotal ? '' : '+'}${fmtV(Math.abs(b.val))}
     </text>`;
 
@@ -1370,16 +1634,130 @@ function drawWaterfall(svgId, steps, unit) {
     lines.forEach((ln, li) => {
       barsSVG += `<text x="${xCenter(b.i)}" y="${labelBaseY + li * 13}"
         text-anchor="middle" font-family="IBM Plex Mono,monospace"
-        font-size="10" fill="#9ca89a">${ln}</text>`;
+        font-size="10" fill="${C.barText}">${ln}</text>`;
     });
   });
 
   // Unit label
   const unitLabel = `<text x="${W - PAD.right}" y="${PAD.top - 2}" text-anchor="end"
-    font-family="IBM Plex Mono,monospace" font-size="10" fill="#5a6358">${unit}</text>`;
+    font-family="IBM Plex Mono,monospace" font-size="10" fill="${C.gridText}">${unit}</text>`;
 
   svg.setAttribute('height', H);
   svg.innerHTML = gridLines + connectors + barsSVG + unitLabel;
+}
+
+function drawMoistureChart(svgId, snaps) {
+  const svg = document.getElementById(svgId);
+  if (!svg || !snaps || !snaps.length) return;
+  const W     = svg.getBoundingClientRect().width || 500;
+  const SEGS  = [
+    { key: 'above_adp', label: 'Recoverable',      color: '#4ade80' },
+    { key: 'hx_loss',   label: 'HX losses',        color: '#f87171' },
+    { key: 'acid_zone', label: 'Below dew point',  color: '#fb923c' },
+    { key: 'latent',    label: 'Latent heat',       color: '#60a5fa' },
+    { key: 'low_zone',  label: 'Below 100°C',       color: '#a78bfa' },
+  ];
+  const LEG_ROWS = Math.ceil(SEGS.length / 2);
+  const LEG_H    = LEG_ROWS * 16 + 8;
+  const PAD   = { top: 16, right: 16, bottom: 10 + LEG_H, left: 52 };
+  const ROW_H = 22, GAP = 6;
+  const chartH = snaps.length * (ROW_H + GAP) - GAP;
+  const H = chartH + PAD.top + PAD.bottom;
+  const C = chartColours();
+  const chartW = W - PAD.left - PAD.right;
+  const maxVal = Math.max(...snaps.map(s => s.U1)) * 1.05;
+  const xScale = v => (v / maxVal) * chartW;
+  const fmtV   = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toString();
+  const mcs    = [0,0.05,0.10,0.13,0.15,0.20,0.25,0.30,0.35,0.40];
+  let bars = '', labels = '', gridLines = '';
+  [0, 0.25, 0.5, 0.75, 1.0].forEach(f => {
+    const x = PAD.left + xScale(maxVal * f);
+    gridLines += `<line x1="${x}" y1="${PAD.top}" x2="${x}" y2="${PAD.top + chartH}" stroke="${C.gridLine}" stroke-width="0.5"/>
+      <text x="${x}" y="${PAD.top - 3}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.gridText}">${fmtV(maxVal * f)}</text>`;
+  });
+  snaps.forEach((s, i) => {
+    const y = PAD.top + i * (ROW_H + GAP);
+    let cursor = 0;
+    SEGS.forEach(seg => {
+      const val = s[seg.key] || 0; if (val <= 0) return;
+      const x = PAD.left + xScale(cursor), w = xScale(val);
+      bars += `<rect x="${x}" y="${y}" width="${w}" height="${ROW_H}" fill="${seg.color}" opacity="0.85" rx="1"/>`;
+      if (w > 28) bars += `<text x="${x+w/2}" y="${y+ROW_H/2+4}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.barTextDk}" font-weight="600">${fmtV(val)}</text>`;
+      cursor += val;
+    });
+    labels += `<text x="${PAD.left - 6}" y="${y+ROW_H/2+4}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="${C.barText}">${(mcs[i]*100).toFixed(0)}%</text>`;
+  });
+  // Legend — two columns at bottom
+  let legend = '';
+  const legY = PAD.top + chartH + 12;
+  const colW = chartW / 2;
+  SEGS.forEach((seg, i) => {
+    const lx = PAD.left + (i % 2) * colW;
+    const ly = legY + Math.floor(i / 2) * 16;
+    legend += `<rect x="${lx}" y="${ly}" width="10" height="10" fill="${seg.color}" opacity="0.85" rx="1"/>
+      <text x="${lx+14}" y="${ly+9}" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.barText}">${seg.label}</text>`;
+  });
+  const yAxisLabel = `<text transform="rotate(-90)" x="${-(PAD.top+chartH/2)}" y="12" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.gridText}">Moisture %</text>`;
+  svg.setAttribute('height', H);
+  svg.innerHTML = gridLines + bars + labels + legend + yAxisLabel;
+}
+
+function drawEnergyMoistureChart(svgId, snaps) {
+  const svg = document.getElementById(svgId);
+  if (!svg || !snaps || !snaps.length) return;
+  const W     = svg.getBoundingClientRect().width || 500;
+  const SEGS  = [
+    { label: 'HHV Biochar',             fn: s => s.T11,                   color: '#fbbf24' },
+    { label: 'Heat water',              fn: s => s.T5 + s.T6 + s.T7,      color: '#60a5fa' },
+    { label: 'Heat biomass',            fn: s => s.T9,                     color: '#a78bfa' },
+    { label: 'Pyrolysis rxn',           fn: s => s.T10,                    color: '#c084fc' },
+    { label: 'Reactor losses',          fn: s => s.T_loss || 0,            color: '#fb923c' },
+    { label: 'Heat syngas + air',       fn: s => s.T12 + s.T13 + s.T14,   color: '#34d399' },
+    { label: 'Energy in exhaust',       fn: s => s.U1,                     color: '#4ade80' },
+  ];
+  const LEG_ROWS = Math.ceil(SEGS.length / 2);
+  const LEG_H    = LEG_ROWS * 16 + 8;
+  const PAD   = { top: 16, right: 16, bottom: 10 + LEG_H, left: 52 };
+  const ROW_H = 22, GAP = 6;
+  const chartH = snaps.length * (ROW_H + GAP) - GAP;
+  const H = chartH + PAD.top + PAD.bottom;
+  const C = chartColours();
+  const chartW = W - PAD.left - PAD.right;
+  const maxVal = Math.max(...snaps.map(s => s.T1)) * 1.05;
+  const xScale = v => (v / maxVal) * chartW;
+  const fmtV   = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toString();
+  const mcs    = [0,0.05,0.10,0.13,0.15,0.20,0.25,0.30,0.35,0.40];
+  let bars = '', labels = '', gridLines = '';
+  [0, 0.25, 0.5, 0.75, 1.0].forEach(f => {
+    const x = PAD.left + xScale(maxVal * f);
+    gridLines += `<line x1="${x}" y1="${PAD.top}" x2="${x}" y2="${PAD.top + chartH}" stroke="${C.gridLine}" stroke-width="0.5"/>
+      <text x="${x}" y="${PAD.top - 3}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.gridText}">${fmtV(maxVal * f)}</text>`;
+  });
+  snaps.forEach((s, i) => {
+    const y = PAD.top + i * (ROW_H + GAP);
+    let cursor = 0;
+    SEGS.forEach(seg => {
+      const val = seg.fn(s) || 0; if (val <= 0) return;
+      const x = PAD.left + xScale(cursor), w = xScale(val);
+      bars += `<rect x="${x}" y="${y}" width="${w}" height="${ROW_H}" fill="${seg.color}" opacity="0.85" rx="1"/>`;
+      if (w > 32) bars += `<text x="${x+w/2}" y="${y+ROW_H/2+4}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.barTextDk}" font-weight="600">${fmtV(val)}</text>`;
+      cursor += val;
+    });
+    labels += `<text x="${PAD.left - 6}" y="${y+ROW_H/2+4}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="${C.barText}">${(mcs[i]*100).toFixed(0)}%</text>`;
+  });
+  // Legend — two columns at bottom
+  let legend = '';
+  const legY = PAD.top + chartH + 12;
+  const colW = chartW / 2;
+  SEGS.forEach((seg, i) => {
+    const lx = PAD.left + (i % 2) * colW;
+    const ly = legY + Math.floor(i / 2) * 16;
+    legend += `<rect x="${lx}" y="${ly}" width="10" height="10" fill="${seg.color}" opacity="0.85" rx="1"/>
+      <text x="${lx+14}" y="${ly+9}" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.barText}">${seg.label}</text>`;
+  });
+  const yAxisLabel = `<text transform="rotate(-90)" x="${-(PAD.top+chartH/2)}" y="12" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="${C.gridText}">Moisture %</text>`;
+  svg.setAttribute('height', H);
+  svg.innerHTML = gridLines + bars + labels + legend + yAxisLabel;
 }
 
 function updateCharts(r) {
@@ -1389,8 +1767,7 @@ function updateCharts(r) {
   // ── MASS WATERFALL ──
   // Build up with inputs, tear down with outputs, land on zero
   const massSteps = [
-    { label: 'Dry biomass',  val: r.md,    color: '#378add' },
-    { label: 'Feed water',   val: r.mw,    color: '#60a5fa' },
+    { label: 'Wet biomass',   val: r.fw,    color: '#378add' },
     { label: 'Air intake',   val: r.mair,  color: '#4ade80' },
     { label: 'Biochar out',  val: -r.mbc,  color: '#fbbf24' },
     { label: 'Wet exhaust',  val: -r.mexw, color: '#f87171' },
@@ -1400,21 +1777,66 @@ function updateCharts(r) {
   // HHV biomass → deduct each sink → deduct non-recoverable losses → land on recoverable heat
   const energySteps = [
     { label: 'HHV biomass',         val: r.T1,                       color: '#378add' },
-    { label: 'Biochar HHV out',     val: -(r.T11),                   color: '#fbbf24' },
-    { label: 'Drying & latent',     val: -(r.T5 + r.T6 + r.T7),     color: '#60a5fa' },
+    { label: 'HHV Biochar',         val: -(r.T11),                   color: '#fbbf24' },
+    { label: 'Heat water',               val: -(r.T5 + r.T6 + r.T7),     color: '#60a5fa' },
     { label: 'Heat biomass',        val: -(r.T9),                    color: '#a78bfa' },
     { label: 'Pyrolysis rxn',       val: -(r.T10),                   color: '#c084fc' },
     { label: 'Reactor losses',      val: -(r.T_loss),                color: '#fb923c' },
     { label: 'Heat syngas + air',   val: -(r.T12 + r.T13 + r.T14),  color: '#34d399' },
-    { label: 'Non-recoverable',     val: -(r.non_rec),               color: '#f87171' },
-    { label: 'Recoverable heat',    val: r.above_adp, color: '#4ade80', total: true },
+    { label: 'Energy in exhaust',   val: r.U1,   color: '#4ade80', total: true },
   ].filter(s => s.val !== 0);
 
   drawWaterfall('wf-mass',   massSteps,   'kg/h');
   drawWaterfall('wf-energy', energySteps, 'kW');
+
+  // ── EXHAUST HEAT CASCADE ──
+  const exhaustSteps = [
+    { label: 'Total exhaust heat',                   val: r.U1,           color: '#378add', total: true },
+    { label: 'Sensible heat below dew point (150C)',  val: -r.acid_zone,   color: '#fb923c' },
+    { label: 'Latent heat of water',                  val: -r.latent,      color: '#60a5fa' },
+    { label: 'Sensible heat below 100C',              val: -(r.T18_water + r.T19_dry), color: '#a78bfa' },
+    { label: 'HX losses',                             val: -r.hx_loss,     color: '#f87171' },
+    { label: 'Net delivered heat',                    val: r.net_rec,      color: '#4ade80', total: true },
+  ];
+  drawWaterfall('wf-exhaust', exhaustSteps, 'kW');
+
+  // ── MOISTURE SENSITIVITY STACKED BAR ──
+  if (r.snaps) drawMoistureChart('wf-moisture', r.snaps);
+  if (r.snaps) drawEnergyMoistureChart('wf-energy-moisture', r.snaps);
 }
 
-// ── CHART PNG EXPORT ──
+// ── THEME TOGGLE ──
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  document.getElementById('theme-label').textContent = isLight ? 'Light' : 'Dark';
+  try { localStorage.setItem('pyrolysis_theme', isLight ? 'light' : 'dark'); } catch(e) {}
+  if (lastResult) updateCharts(lastResult);
+}
+
+// Initialise theme from saved preference
+(function() {
+  try {
+    if (localStorage.getItem('pyrolysis_theme') === 'light') {
+      document.documentElement.classList.add('light');
+      document.addEventListener('DOMContentLoaded', () => {
+        const el = document.getElementById('theme-label');
+        if (el) el.textContent = 'Light';
+      });
+    }
+  } catch(e) {}
+})();
+
+// Theme-aware colours for SVG charts
+function chartColours() {
+  const light = document.documentElement.classList.contains('light');
+  return {
+    gridLine:  light ? '#c8bfb0' : '#2e3430',
+    gridText:  light ? '#3d4e45' : '#5a6358',
+    barText:   light ? '#3d4e45' : '#9ca89a',
+    barTextDk: light ? '#1e2420' : '#0d0f0e',  // text inside coloured bars
+    bg:        light ? '#f5f0e8' : '#0d0f0e',
+  };
+}
 
 function exportChartPNG(svgId, filename) {
   const svg = document.getElementById(svgId);
@@ -1430,11 +1852,11 @@ function exportChartPNG(svgId, filename) {
   svgClone.setAttribute('height', H);
   svgClone.setAttribute('xmlns',  'http://www.w3.org/2000/svg');
 
-  // Prepend a background rect so PNG has a dark background
+  // Prepend a background rect using current theme background colour
   const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   bg.setAttribute('width',  W);
   bg.setAttribute('height', H);
-  bg.setAttribute('fill',   '#0d0f0e');
+  bg.setAttribute('fill',   chartColours().bg);
   svgClone.insertBefore(bg, svgClone.firstChild);
 
   const serialised = new XMLSerializer().serializeToString(svgClone);
