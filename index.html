@@ -49,7 +49,9 @@
   header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--green); text-transform: uppercase; flex-shrink: 0; }
   header .header-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   header .header-controls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-  @media (max-width: 900px) { header .header-sub { display: none; } }
+    .kpi-value { font-size: 14px; }
+    input[type="number"] { width: 60px; }
+  }
 
   .layout { display: grid; grid-template-columns: 308px 1fr; min-height: calc(100vh - 57px); }
 
@@ -154,7 +156,7 @@
   <h1>H.O.T. M.E.S.S.</h1>
   <span class="header-sub">Heat &amp; Output Tracker for Mass-Energy Stoichiometric Simulation // <span style="color:var(--amber);">Estimate only</span></span>
   <div class="header-controls">
-    <a href="simple.html" style="font-family:var(--mono);font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border2);padding:3px 10px;border-radius:3px;letter-spacing:.06em;white-space:nowrap;" title="N.V.D. — Not Very Detailed">🔥 N.V.D.</a>
+    <a href="simple.html" style="font-family:var(--mono);font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border2);padding:3px 10px;border-radius:3px;letter-spacing:.06em;white-space:nowrap;" title="Simple mode">🔥 Simple</a>
     <div class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">
       <span id="theme-label">Dark</span>
       <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
@@ -163,7 +165,7 @@
 </header>
 
 <div class="layout">
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="section-label">Feedstock</div>
   <div class="input-group">
     <div class="input-row"><label>Wet feed rate</label><input type="number" id="i_fw" value="1150" step="10"><span class="unit">kg/h</span></div>
@@ -256,7 +258,7 @@
   </div>
 </aside>
 
-<main style="padding: 24px 28px 60px; overflow-y: auto;">
+<main id="main-content" style="padding: 24px 28px 60px; overflow-y: auto;">
   <div class="summary-bar">
     <div class="kpi"><div class="kpi-label">Dry Feed</div><div class="kpi-value" id="k_dry">—</div><div class="kpi-unit">kg/h</div></div>
     <div class="kpi"><div class="kpi-label">Biochar Output</div><div class="kpi-value" id="k_bc">—</div><div class="kpi-unit">kg/h</div><div id="k_bc_ash" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px;"></div></div>
@@ -1805,7 +1807,7 @@ function updateCharts(r) {
   if (r.snaps) drawEnergyMoistureChart('wf-energy-moisture', r.snaps);
 }
 
-// ── THEME TOGGLE ──
+
 function toggleTheme() {
   const isLight = document.documentElement.classList.toggle('light');
   document.getElementById('theme-label').textContent = isLight ? 'Light' : 'Dark';
