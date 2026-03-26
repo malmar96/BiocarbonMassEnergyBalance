@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>H.O.T. M.E.S.S. — Heat & Output Tracker for Mass-Energy Stoichiometric Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
   :root {
@@ -33,7 +35,6 @@
     width: 36px; height: 18px; border-radius: 9px;
     background: var(--bg4); border: 1px solid var(--border2);
     position: relative; transition: background .2s;
-    flex-shrink: 0;
   }
   .theme-toggle-thumb {
     position: absolute; top: 2px; left: 2px;
@@ -45,17 +46,15 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; min-height: 100vh; }
 
-  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; gap: 16px; min-width: 0; }
-  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--green); text-transform: uppercase; flex-shrink: 0; }
-  header .header-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  header .header-controls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--green); text-transform: uppercase; }
+  header span { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; }
     .kpi-value { font-size: 14px; }
     input[type="number"] { width: 60px; }
   }
 
   .layout { display: grid; grid-template-columns: 308px 1fr; min-height: calc(100vh - 57px); }
-
-  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 20px; overflow-y: auto; }
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 20px; overflow-y: auto; grid-column: 1; }
 
   .section-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
@@ -82,8 +81,7 @@
   .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
   .card { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-  .card-header { background: var(--bg4); border-bottom: 1px solid var(--border); padding: 9px 14px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); display: flex; align-items: center; gap: 8px; }
-  .card-header .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .card-header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 16px; }
   .card-header .dot.amber { background: var(--amber); }
   .card-header .dot.blue  { background: var(--blue); }
   .card-header .dot.red   { background: var(--red); }
@@ -103,10 +101,8 @@
 
   .cascade { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
   .cascade-row { display: flex; align-items: center; gap: 10px; }
-  .cascade-lbl { font-family: var(--mono); font-size: 11px; color: var(--text2); width: 230px; flex-shrink: 0; }
   .cascade-bar-wrap { flex: 1; height: 18px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
   .cascade-bar { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
-  .cascade-val { font-family: var(--mono); font-size: 11px; color: var(--text2); width: 80px; text-align: right; flex-shrink: 0; }
 
   .st { width: 100%; border-collapse: collapse; }
   .st th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border2); }
@@ -149,22 +145,45 @@
   }
   .feedstock-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); margin: -4px 0 10px; line-height: 1.5; padding: 5px 7px; background: var(--bg4); border-radius: 3px; border-left: 2px solid var(--border2); }
   .input-row.dimmed input { opacity: 0.45; }
+
+
+/* ── LAYOUT ── */
+.app-wrapper {
+  display: flex;
+  flex-direction: row;
+  min-height: calc(100vh - 57px);
+}
+.sidebar {
+  width: 308px;
+  min-width: 308px;
+  max-width: 308px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 24px 20px;
+  overflow-y: auto;
+}
+.main-panel {
+  flex: 1;
+  padding: 24px 28px 60px;
+  overflow-y: auto;
+  min-width: 0;
+}
 </style>
 </head>
 <body>
+
 <header>
   <h1>H.O.T. M.E.S.S.</h1>
-  <span class="header-sub">Heat &amp; Output Tracker for Mass-Energy Stoichiometric Simulation // <span style="color:var(--amber);">Estimate only</span></span>
-  <div class="header-controls">
-    <a href="simple.html" style="font-family:var(--mono);font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border2);padding:3px 10px;border-radius:3px;letter-spacing:.06em;white-space:nowrap;" title="Simple mode">🔥 Simple</a>
-    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">
-      <span id="theme-label">Dark</span>
-      <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
-    </div>
+  <span>Heat &amp; Output Tracker for Mass-Energy Stoichiometric Simulation // <span style="color:var(--amber);">Estimate only</span></span>
+  <a href="simple.html" style="margin-left:auto;margin-right:16px;font-family:var(--mono);font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border2);padding:3px 10px;border-radius:3px;letter-spacing:.06em;">🔥 Simple</a>
+  <div class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">
+    <span id="theme-label">Dark</span>
+    <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
   </div>
 </header>
 
-<div class="layout">
+<div class="app-wrapper">
 <aside class="sidebar" id="sidebar">
   <div class="section-label">Feedstock</div>
   <div class="input-group">
@@ -257,8 +276,8 @@
     </div>
   </div>
 </aside>
+<div class="main-panel">
 
-<main id="main-content" style="padding: 24px 28px 60px; overflow-y: auto;">
   <div class="summary-bar">
     <div class="kpi"><div class="kpi-label">Dry Feed</div><div class="kpi-value" id="k_dry">—</div><div class="kpi-unit">kg/h</div></div>
     <div class="kpi"><div class="kpi-label">Biochar Output</div><div class="kpi-value" id="k_bc">—</div><div class="kpi-unit">kg/h</div><div id="k_bc_ash" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px;"></div></div>
@@ -786,7 +805,11 @@
 
   </div>
 
-</main>
+
+</div>
+</div>
+
+<div class="status-bar">
   <span id="sm" class="ok">● MASS OK</span>
   <span id="se" class="ok">● ENERGY OK</span>
   <span style="margin-left:auto;">Air composition: 21% O₂ / 79% N₂ by volume → N₂:O₂ = 79/21 = 3.7619</span>
@@ -794,6 +817,7 @@
 </div>
 
 <script>
+
 // ── CONSTANTS — exact spreadsheet values ──
 const N_AIR = 79/21;                    // molar N2:O2 in air
 const Cp_w = 4.2, Cp_s = 2.0, Hvap = 2257;  // water properties (M22, M23, M24)
@@ -2185,6 +2209,7 @@ function T(name) {
 
 // Initial render in case tab is already active
 renderScenariosTable();
+
 </script>
 </body>
 </html>
