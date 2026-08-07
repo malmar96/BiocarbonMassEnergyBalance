@@ -368,27 +368,43 @@
         <div class="card-body">
           <table class="dt">
             <tr style="font-size:10px;color:var(--text3);">
-              <td>Element</td><td>Total in</td><td>→ Biochar</td><td>→ Exhaust</td><td>Residual</td><td class="u"></td>
+              <td>Element</td>
+              <td>Biomass</td><td>Feed H₂O</td><td>Air</td>
+              <td>Total in</td>
+              <td>→ Biochar</td><td>→ Exhaust</td>
+              <td>Residual</td><td class="u"></td>
             </tr>
             <tr>
-              <td>C</td><td id="ab_C_in">—</td><td id="ab_C_bc">—</td><td id="ab_C_ex">—</td>
+              <td>C</td>
+              <td id="ab_C_bm">—</td><td style="color:var(--text3);">0</td><td style="color:var(--text3);">0</td>
+              <td id="ab_C_in">—</td>
+              <td id="ab_C_bc">—</td><td id="ab_C_ex">—</td>
               <td id="ab_C_err" class="ab-err">—</td><td class="u">kg/h</td>
             </tr>
             <tr>
-              <td>H</td><td id="ab_H_in">—</td><td id="ab_H_bc">—</td><td id="ab_H_ex">—</td>
+              <td>H</td>
+              <td id="ab_H_bm">—</td><td id="ab_H_fw">—</td><td style="color:var(--text3);">0</td>
+              <td id="ab_H_in">—</td>
+              <td id="ab_H_bc">—</td><td id="ab_H_ex">—</td>
               <td id="ab_H_err" class="ab-err">—</td><td class="u">kg/h</td>
             </tr>
             <tr>
-              <td>O</td><td id="ab_O_in">—</td><td id="ab_O_bc">—</td><td id="ab_O_ex">—</td>
+              <td>O</td>
+              <td id="ab_O_bm">—</td><td id="ab_O_fw">—</td><td id="ab_O_air">—</td>
+              <td id="ab_O_in">—</td>
+              <td id="ab_O_bc">—</td><td id="ab_O_ex">—</td>
               <td id="ab_O_err" class="ab-err">—</td><td class="u">kg/h</td>
             </tr>
             <tr>
-              <td>N</td><td id="ab_N_in">—</td><td style="color:var(--text3);">0</td><td id="ab_N_ex">—</td>
+              <td>N</td>
+              <td style="color:var(--text3);">0</td><td style="color:var(--text3);">0</td><td id="ab_N_air">—</td>
+              <td id="ab_N_in">—</td>
+              <td style="color:var(--text3);">0</td><td id="ab_N_ex">—</td>
               <td id="ab_N_err" class="ab-err">—</td><td class="u">kg/h</td>
             </tr>
           </table>
           <div class="note" style="margin-top:8px;">
-            H &amp; O inputs include feed water. O input includes air O₂ (stoich + excess). N input is N₂ from air — passes entirely to exhaust.
+            Air O = stoichiometric O₂ + excess O₂. Feed H₂O contributes H = (2/18)×ṁ_w, O = (16/18)×ṁ_w.
           </div>
         </div>
       </div>
@@ -398,22 +414,38 @@
         <div class="card-body">
           <table class="dt">
             <tr style="font-size:10px;color:var(--text3);">
-              <td>Element</td><td>Total in</td><td>→ Biochar</td><td>→ Exhaust</td><td>Residual</td><td class="u"></td>
+              <td>Element</td>
+              <td>Biomass</td><td>Feed H₂O</td><td>Air</td>
+              <td>Total in</td>
+              <td>→ Biochar</td><td>→ Exhaust</td>
+              <td>Residual</td><td class="u"></td>
             </tr>
             <tr>
-              <td>C</td><td id="ab_C_in_m">—</td><td id="ab_C_bc_m">—</td><td id="ab_C_ex_m">—</td>
+              <td>C</td>
+              <td id="ab_C_bm_m">—</td><td style="color:var(--text3);">0</td><td style="color:var(--text3);">0</td>
+              <td id="ab_C_in_m">—</td>
+              <td id="ab_C_bc_m">—</td><td id="ab_C_ex_m">—</td>
               <td id="ab_C_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
             </tr>
             <tr>
-              <td>H</td><td id="ab_H_in_m">—</td><td id="ab_H_bc_m">—</td><td id="ab_H_ex_m">—</td>
+              <td>H</td>
+              <td id="ab_H_bm_m">—</td><td id="ab_H_fw_m">—</td><td style="color:var(--text3);">0</td>
+              <td id="ab_H_in_m">—</td>
+              <td id="ab_H_bc_m">—</td><td id="ab_H_ex_m">—</td>
               <td id="ab_H_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
             </tr>
             <tr>
-              <td>O</td><td id="ab_O_in_m">—</td><td id="ab_O_bc_m">—</td><td id="ab_O_ex_m">—</td>
+              <td>O</td>
+              <td id="ab_O_bm_m">—</td><td id="ab_O_fw_m">—</td><td id="ab_O_air_m">—</td>
+              <td id="ab_O_in_m">—</td>
+              <td id="ab_O_bc_m">—</td><td id="ab_O_ex_m">—</td>
               <td id="ab_O_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
             </tr>
             <tr>
-              <td>N</td><td id="ab_N_in_m">—</td><td style="color:var(--text3);">0</td><td id="ab_N_ex_m">—</td>
+              <td>N</td>
+              <td style="color:var(--text3);">0</td><td style="color:var(--text3);">0</td><td id="ab_N_air_m">—</td>
+              <td id="ab_N_in_m">—</td>
+              <td style="color:var(--text3);">0</td><td id="ab_N_ex_m">—</td>
               <td id="ab_N_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
             </tr>
           </table>
@@ -1127,11 +1159,20 @@ function calcAt(inp, rc, Tto) {
   const U1  = T16 + T17 + T18 + T19;
 
   // ── ATOM BALANCE ──
-  // Elemental mass flows (kg/h) — inputs
-  const ab_C_in   = mCbm;
-  const ab_H_in   = mHbm + (2/18)*mw;           // organic H + feed water H
-  const ab_O_in   = mObm + (16/18)*mw + mO2n + mO2x;  // organic O + feed water O + air O2
-  const ab_N_in   = mN2;                         // all N from air
+  // Per-stream inputs (mass, kg/h)
+  const ab_C_bm   = mCbm;                        // C from biomass organic
+  const ab_H_bm   = mHbm;                        // H from biomass organic
+  const ab_H_fw   = (2/18)*mw;                   // H from feed water
+  const ab_O_bm   = mObm;                        // O from biomass organic
+  const ab_O_fw   = (16/18)*mw;                  // O from feed water
+  const ab_O_air  = mO2n + mO2x;                 // O from air (stoich + excess O2)
+  const ab_N_air  = mN2;                         // N from air (as N2)
+
+  // Total inputs
+  const ab_C_in   = ab_C_bm;
+  const ab_H_in   = ab_H_bm + ab_H_fw;
+  const ab_O_in   = ab_O_bm + ab_O_fw + ab_O_air;
+  const ab_N_in   = ab_N_air;
 
   // Per-stream outputs — biochar
   const ab_C_bc   = mCbc;
@@ -1156,7 +1197,11 @@ function calcAt(inp, rc, Tto) {
   const ab_O_err  = ab_O_in - ab_O_out;
   const ab_N_err  = ab_N_in - ab_N_out;
 
-  // Molar (kmol/h): divide by atomic weight
+  // Molar (kmol/h)
+  const ab_C_bm_m = ab_C_bm / 12;  const ab_H_bm_m = ab_H_bm / 1;
+  const ab_H_fw_m = ab_H_fw / 1;   const ab_O_bm_m = ab_O_bm / 16;
+  const ab_O_fw_m = ab_O_fw / 16;  const ab_O_air_m= ab_O_air/ 16;
+  const ab_N_air_m= ab_N_air/ 14;
   const ab_C_in_m  = ab_C_in  / 12;  const ab_C_bc_m  = ab_C_bc  / 12;  const ab_C_ex_m  = ab_C_ex  / 12;
   const ab_H_in_m  = ab_H_in  / 1;   const ab_H_bc_m  = ab_H_bc  / 1;   const ab_H_ex_m  = ab_H_ex  / 1;
   const ab_O_in_m  = ab_O_in  / 16;  const ab_O_bc_m  = ab_O_bc  / 16;  const ab_O_ex_m  = ab_O_ex  / 16;
@@ -1173,7 +1218,10 @@ function calcAt(inp, rc, Tto) {
     merr, tin, tout,
     Cseq: mCbc/mCbm,
     xCO2: mCO2/mexw, xH2O: mH2Ox/mexw, xN2: mN2/mexw, xO2: mO2x/mexw,
-    // atom balance
+    // atom balance — per-stream inputs
+    ab_C_bm, ab_H_bm, ab_H_fw, ab_O_bm, ab_O_fw, ab_O_air, ab_N_air,
+    ab_C_bm_m, ab_H_bm_m, ab_H_fw_m, ab_O_bm_m, ab_O_fw_m, ab_O_air_m, ab_N_air_m,
+    // atom balance — totals and outputs
     ab_C_in, ab_H_in, ab_O_in, ab_N_in,
     ab_C_bc, ab_H_bc, ab_O_bc, ab_N_bc,
     ab_C_ex, ab_H_ex, ab_O_ex, ab_N_ex,
@@ -1522,31 +1570,35 @@ function run() {
   S('m_O2g',r.mO2g,1); S('m_Ocr',r.mOsg,1); S('m_O2n',r.mO2n,1); S('m_O2e',r.mO2x,1); S('m_air2',r.mair,1);
 
   // ── ATOM BALANCE DISPLAY ──
-  const abRow = (pre, v_in, v_bc, v_ex, v_err, dp) => {
-    S(pre+'_in', v_in, dp); S(pre+'_bc', v_bc, dp); S(pre+'_ex', v_ex, dp);
+  const abRow = (pre, v_bm, v_fw, v_air, v_in, v_bc, v_ex, v_err, dp) => {
+    const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v.toFixed(dp); };
+    set(pre+'_bm', v_bm); set(pre+'_fw', v_fw); set(pre+'_air', v_air);
+    set(pre+'_in', v_in); set(pre+'_bc', v_bc); set(pre+'_ex', v_ex);
     const el = document.getElementById(pre+'_err');
     if (el) {
       el.textContent = (v_err >= 0 ? '+' : '') + v_err.toFixed(dp + 1);
       el.className = 'ab-err ' + (Math.abs(v_err) < 0.5 ? 'ab-ok' : 'ab-bad');
     }
   };
-  abRow('ab_C', r.ab_C_in, r.ab_C_bc, r.ab_C_ex, r.ab_C_err, 1);
-  abRow('ab_H', r.ab_H_in, r.ab_H_bc, r.ab_H_ex, r.ab_H_err, 1);
-  abRow('ab_O', r.ab_O_in, r.ab_O_bc, r.ab_O_ex, r.ab_O_err, 1);
-  abRow('ab_N', r.ab_N_in, r.ab_N_bc, r.ab_N_ex, r.ab_N_err, 1);
+  abRow('ab_C', r.ab_C_bm, 0,          0,          r.ab_C_in, r.ab_C_bc, r.ab_C_ex, r.ab_C_err, 1);
+  abRow('ab_H', r.ab_H_bm, r.ab_H_fw,  0,          r.ab_H_in, r.ab_H_bc, r.ab_H_ex, r.ab_H_err, 1);
+  abRow('ab_O', r.ab_O_bm, r.ab_O_fw,  r.ab_O_air, r.ab_O_in, r.ab_O_bc, r.ab_O_ex, r.ab_O_err, 1);
+  abRow('ab_N', 0,          0,          r.ab_N_air, r.ab_N_in, 0,         r.ab_N_ex, r.ab_N_err, 1);
 
-  const abRowM = (pre, v_in, v_bc, v_ex, v_err, dp) => {
-    S(pre+'_in_m', v_in, dp); S(pre+'_bc_m', v_bc, dp); S(pre+'_ex_m', v_ex, dp);
+  const abRowM = (pre, v_bm, v_fw, v_air, v_in, v_bc, v_ex, v_err, dp) => {
+    const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=Number(v).toFixed(dp); };
+    set(pre+'_bm_m', v_bm); set(pre+'_fw_m', v_fw); set(pre+'_air_m', v_air);
+    set(pre+'_in_m', v_in); set(pre+'_bc_m', v_bc); set(pre+'_ex_m', v_ex);
     const el = document.getElementById(pre+'_err_m');
     if (el) {
       el.textContent = (v_err >= 0 ? '+' : '') + v_err.toFixed(dp + 1);
       el.className = 'ab-err ' + (Math.abs(v_err) < 0.001 ? 'ab-ok' : 'ab-bad');
     }
   };
-  abRowM('ab_C', r.ab_C_in_m, r.ab_C_bc_m, r.ab_C_ex_m, r.ab_C_in_m-(r.ab_C_bc_m+r.ab_C_ex_m), 3);
-  abRowM('ab_H', r.ab_H_in_m, r.ab_H_bc_m, r.ab_H_ex_m, r.ab_H_in_m-(r.ab_H_bc_m+r.ab_H_ex_m), 3);
-  abRowM('ab_O', r.ab_O_in_m, r.ab_O_bc_m, r.ab_O_ex_m, r.ab_O_in_m-(r.ab_O_bc_m+r.ab_O_ex_m), 3);
-  abRowM('ab_N', r.ab_N_in_m, r.ab_N_bc_m, r.ab_N_ex_m, r.ab_N_in_m-r.ab_N_ex_m,               3);
+  abRowM('ab_C', r.ab_C_bm_m, 0,             0,              r.ab_C_in_m, r.ab_C_bc_m, r.ab_C_ex_m, r.ab_C_in_m-(r.ab_C_bc_m+r.ab_C_ex_m), 3);
+  abRowM('ab_H', r.ab_H_bm_m, r.ab_H_fw_m,   0,              r.ab_H_in_m, r.ab_H_bc_m, r.ab_H_ex_m, r.ab_H_in_m-(r.ab_H_bc_m+r.ab_H_ex_m), 3);
+  abRowM('ab_O', r.ab_O_bm_m, r.ab_O_fw_m,   r.ab_O_air_m,  r.ab_O_in_m, r.ab_O_bc_m, r.ab_O_ex_m, r.ab_O_in_m-(r.ab_O_bc_m+r.ab_O_ex_m), 3);
+  abRowM('ab_N', 0,            0,              r.ab_N_air_m,  r.ab_N_in_m, 0,            r.ab_N_ex_m, r.ab_N_in_m-r.ab_N_ex_m,               3);
 
   // ── EXHAUST SPECIES COMPOSITION ──
   const MCO2_ex = r.mCO2 / 44;
