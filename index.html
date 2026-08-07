@@ -70,6 +70,9 @@
   .comp-check.ok   { color: var(--green); background: rgba(74,222,128,0.08); }
   .comp-check.warn { color: var(--red);   background: rgba(248,113,113,0.08); }
   .note { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: -4px; margin-bottom: 8px; padding-left: 2px; line-height: 1.4; }
+  .ab-err { font-weight: 600; }
+  .ab-ok  { color: var(--green); }
+  .ab-bad { color: var(--red); }
 
   .summary-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
   .kpi { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; }
@@ -356,6 +359,116 @@
       </div></div>
     </div>
     <div id="mbc"></div>
+
+    <!-- ATOM BALANCE VERIFICATION PANEL -->
+    <div class="two-col" style="margin-top:16px;">
+
+      <div class="card">
+        <div class="card-header"><span class="dot amber"></span>Atom balance — mass (kg/h)</div>
+        <div class="card-body">
+          <table class="dt">
+            <tr style="font-size:10px;color:var(--text3);">
+              <td>Element</td><td>Total in</td><td>→ Biochar</td><td>→ Exhaust</td><td>Residual</td><td class="u"></td>
+            </tr>
+            <tr>
+              <td>C</td><td id="ab_C_in">—</td><td id="ab_C_bc">—</td><td id="ab_C_ex">—</td>
+              <td id="ab_C_err" class="ab-err">—</td><td class="u">kg/h</td>
+            </tr>
+            <tr>
+              <td>H</td><td id="ab_H_in">—</td><td id="ab_H_bc">—</td><td id="ab_H_ex">—</td>
+              <td id="ab_H_err" class="ab-err">—</td><td class="u">kg/h</td>
+            </tr>
+            <tr>
+              <td>O</td><td id="ab_O_in">—</td><td id="ab_O_bc">—</td><td id="ab_O_ex">—</td>
+              <td id="ab_O_err" class="ab-err">—</td><td class="u">kg/h</td>
+            </tr>
+            <tr>
+              <td>N</td><td id="ab_N_in">—</td><td style="color:var(--text3);">0</td><td id="ab_N_ex">—</td>
+              <td id="ab_N_err" class="ab-err">—</td><td class="u">kg/h</td>
+            </tr>
+          </table>
+          <div class="note" style="margin-top:8px;">
+            H &amp; O inputs include feed water. O input includes air O₂ (stoich + excess). N input is N₂ from air — passes entirely to exhaust.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="dot blue"></span>Atom balance — molar (kmol/h)</div>
+        <div class="card-body">
+          <table class="dt">
+            <tr style="font-size:10px;color:var(--text3);">
+              <td>Element</td><td>Total in</td><td>→ Biochar</td><td>→ Exhaust</td><td>Residual</td><td class="u"></td>
+            </tr>
+            <tr>
+              <td>C</td><td id="ab_C_in_m">—</td><td id="ab_C_bc_m">—</td><td id="ab_C_ex_m">—</td>
+              <td id="ab_C_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
+            </tr>
+            <tr>
+              <td>H</td><td id="ab_H_in_m">—</td><td id="ab_H_bc_m">—</td><td id="ab_H_ex_m">—</td>
+              <td id="ab_H_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
+            </tr>
+            <tr>
+              <td>O</td><td id="ab_O_in_m">—</td><td id="ab_O_bc_m">—</td><td id="ab_O_ex_m">—</td>
+              <td id="ab_O_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
+            </tr>
+            <tr>
+              <td>N</td><td id="ab_N_in_m">—</td><td style="color:var(--text3);">0</td><td id="ab_N_ex_m">—</td>
+              <td id="ab_N_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
+            </tr>
+          </table>
+          <div class="note" style="margin-top:8px;">
+            Atomic weights: C=12, H=1, O=16, N=14 g/mol. Residual &lt; 0.001 kmol/h indicates closure.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- EXHAUST SPECIES BREAKDOWN -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header"><span class="dot green"></span>Exhaust species composition</div>
+      <div class="card-body">
+        <table class="dt">
+          <tr style="font-size:10px;color:var(--text3);">
+            <td>Species</td>
+            <td>Mass flow</td><td class="u">kg/h</td>
+            <td>Molar flow</td><td class="u">kmol/h</td>
+            <td>Mass frac (wet)</td>
+            <td>Mol frac (dry)</td>
+          </tr>
+          <tr><td>CO₂</td>
+            <td id="sp_mCO2">—</td><td class="u">kg/h</td>
+            <td id="sp_MCO2">—</td><td class="u">kmol/h</td>
+            <td id="sp_xCO2_w">—</td><td id="sp_xCO2_d">—</td>
+          </tr>
+          <tr><td>H₂O</td>
+            <td id="sp_mH2O">—</td><td class="u">kg/h</td>
+            <td id="sp_MH2O">—</td><td class="u">kmol/h</td>
+            <td id="sp_xH2O_w">—</td><td style="color:var(--text3);">— (wet only)</td>
+          </tr>
+          <tr><td>N₂</td>
+            <td id="sp_mN2">—</td><td class="u">kg/h</td>
+            <td id="sp_MN2">—</td><td class="u">kmol/h</td>
+            <td id="sp_xN2_w">—</td><td id="sp_xN2_d">—</td>
+          </tr>
+          <tr><td>O₂ (excess)</td>
+            <td id="sp_mO2x">—</td><td class="u">kg/h</td>
+            <td id="sp_MO2x">—</td><td class="u">kmol/h</td>
+            <td id="sp_xO2_w">—</td><td id="sp_xO2_d">—</td>
+          </tr>
+          <tr class="sub"><td>Total wet exhaust</td>
+            <td id="sp_mexw">—</td><td class="u">kg/h</td>
+            <td id="sp_Mexw">—</td><td class="u">kmol/h</td>
+            <td>1.000</td><td>1.000</td>
+          </tr>
+        </table>
+        <div class="note" style="margin-top:8px;">
+          Mol frac (dry) excludes H₂O — consistent with how xs (excess O₂) is specified. Verify O₂ dry mol frac = xs input.
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ENERGY -->
@@ -1013,6 +1126,42 @@ function calcAt(inp, rc, Tto) {
   // U1 kept for exhaust recovery tab: U1 = T16+T17+T18+T19 = total exhaust enthalpy
   const U1  = T16 + T17 + T18 + T19;
 
+  // ── ATOM BALANCE ──
+  // Elemental mass flows (kg/h) — inputs
+  const ab_C_in   = mCbm;
+  const ab_H_in   = mHbm + (2/18)*mw;           // organic H + feed water H
+  const ab_O_in   = mObm + (16/18)*mw + mO2n + mO2x;  // organic O + feed water O + air O2
+  const ab_N_in   = mN2;                         // all N from air
+
+  // Per-stream outputs — biochar
+  const ab_C_bc   = mCbc;
+  const ab_H_bc   = mHbc;
+  const ab_O_bc   = mObc;
+  const ab_N_bc   = 0;
+
+  // Per-stream outputs — exhaust
+  const ab_C_ex   = (12/44)*mCO2;               // C in CO2
+  const ab_H_ex   = (2/18)*mH2Ox;               // H in exhaust H2O
+  const ab_O_ex   = (32/44)*mCO2 + (16/18)*mH2Ox + mO2x;  // O in CO2 + H2O + excess O2
+  const ab_N_ex   = mN2;                         // all N2 to exhaust
+
+  // Totals out and residuals
+  const ab_C_out  = ab_C_bc + ab_C_ex;
+  const ab_H_out  = ab_H_bc + ab_H_ex;
+  const ab_O_out  = ab_O_bc + ab_O_ex;
+  const ab_N_out  = ab_N_bc + ab_N_ex;
+
+  const ab_C_err  = ab_C_in - ab_C_out;
+  const ab_H_err  = ab_H_in - ab_H_out;
+  const ab_O_err  = ab_O_in - ab_O_out;
+  const ab_N_err  = ab_N_in - ab_N_out;
+
+  // Molar (kmol/h): divide by atomic weight
+  const ab_C_in_m  = ab_C_in  / 12;  const ab_C_bc_m  = ab_C_bc  / 12;  const ab_C_ex_m  = ab_C_ex  / 12;
+  const ab_H_in_m  = ab_H_in  / 1;   const ab_H_bc_m  = ab_H_bc  / 1;   const ab_H_ex_m  = ab_H_ex  / 1;
+  const ab_O_in_m  = ab_O_in  / 16;  const ab_O_bc_m  = ab_O_bc  / 16;  const ab_O_ex_m  = ab_O_ex  / 16;
+  const ab_N_in_m  = ab_N_in  / 14;  const ab_N_bc_m  = 0;               const ab_N_ex_m  = ab_N_ex  / 14;
+
   return {
     rc, Tto,
     md, mw, fw, m_ash, m_org, ash_active,
@@ -1024,6 +1173,16 @@ function calcAt(inp, rc, Tto) {
     merr, tin, tout,
     Cseq: mCbc/mCbm,
     xCO2: mCO2/mexw, xH2O: mH2Ox/mexw, xN2: mN2/mexw, xO2: mO2x/mexw,
+    // atom balance
+    ab_C_in, ab_H_in, ab_O_in, ab_N_in,
+    ab_C_bc, ab_H_bc, ab_O_bc, ab_N_bc,
+    ab_C_ex, ab_H_ex, ab_O_ex, ab_N_ex,
+    ab_C_out, ab_H_out, ab_O_out, ab_N_out,
+    ab_C_err, ab_H_err, ab_O_err, ab_N_err,
+    ab_C_in_m, ab_C_bc_m, ab_C_ex_m,
+    ab_H_in_m, ab_H_bc_m, ab_H_ex_m,
+    ab_O_in_m, ab_O_bc_m, ab_O_ex_m,
+    ab_N_in_m, ab_N_bc_m, ab_N_ex_m,
     T1, T5, T6, T7, T9, T10, T11, T12, T13, T14, T_loss,
     T16, T17, T18, T19, T21, T23,
     W19, W16, W17, W18,
@@ -1361,6 +1520,56 @@ function run() {
   S('m_sg',r.msg,1); S('m_Csg',r.mCsg,2); S('m_Hsg',r.mHsg,2); S('m_Osg',r.mOsg,2);
   document.getElementById('m_sgmc').textContent = fmt(r.sgmc,4);
   S('m_O2g',r.mO2g,1); S('m_Ocr',r.mOsg,1); S('m_O2n',r.mO2n,1); S('m_O2e',r.mO2x,1); S('m_air2',r.mair,1);
+
+  // ── ATOM BALANCE DISPLAY ──
+  const abRow = (pre, v_in, v_bc, v_ex, v_err, dp) => {
+    S(pre+'_in', v_in, dp); S(pre+'_bc', v_bc, dp); S(pre+'_ex', v_ex, dp);
+    const el = document.getElementById(pre+'_err');
+    if (el) {
+      el.textContent = (v_err >= 0 ? '+' : '') + v_err.toFixed(dp + 1);
+      el.className = 'ab-err ' + (Math.abs(v_err) < 0.5 ? 'ab-ok' : 'ab-bad');
+    }
+  };
+  abRow('ab_C', r.ab_C_in, r.ab_C_bc, r.ab_C_ex, r.ab_C_err, 1);
+  abRow('ab_H', r.ab_H_in, r.ab_H_bc, r.ab_H_ex, r.ab_H_err, 1);
+  abRow('ab_O', r.ab_O_in, r.ab_O_bc, r.ab_O_ex, r.ab_O_err, 1);
+  abRow('ab_N', r.ab_N_in, r.ab_N_bc, r.ab_N_ex, r.ab_N_err, 1);
+
+  const abRowM = (pre, v_in, v_bc, v_ex, v_err, dp) => {
+    S(pre+'_in_m', v_in, dp); S(pre+'_bc_m', v_bc, dp); S(pre+'_ex_m', v_ex, dp);
+    const el = document.getElementById(pre+'_err_m');
+    if (el) {
+      el.textContent = (v_err >= 0 ? '+' : '') + v_err.toFixed(dp + 1);
+      el.className = 'ab-err ' + (Math.abs(v_err) < 0.001 ? 'ab-ok' : 'ab-bad');
+    }
+  };
+  abRowM('ab_C', r.ab_C_in_m, r.ab_C_bc_m, r.ab_C_ex_m, r.ab_C_in_m-(r.ab_C_bc_m+r.ab_C_ex_m), 3);
+  abRowM('ab_H', r.ab_H_in_m, r.ab_H_bc_m, r.ab_H_ex_m, r.ab_H_in_m-(r.ab_H_bc_m+r.ab_H_ex_m), 3);
+  abRowM('ab_O', r.ab_O_in_m, r.ab_O_bc_m, r.ab_O_ex_m, r.ab_O_in_m-(r.ab_O_bc_m+r.ab_O_ex_m), 3);
+  abRowM('ab_N', r.ab_N_in_m, r.ab_N_bc_m, r.ab_N_ex_m, r.ab_N_in_m-r.ab_N_ex_m,               3);
+
+  // ── EXHAUST SPECIES COMPOSITION ──
+  const MCO2_ex = r.mCO2 / 44;
+  const MH2O_ex = r.mH2Ox / 18;
+  const MN2_ex  = r.mN2  / 28;
+  const MO2x_ex = r.mO2x / 32;
+  const Mexw    = MCO2_ex + MH2O_ex + MN2_ex + MO2x_ex;
+  const Mdry    = MCO2_ex + MN2_ex + MO2x_ex;
+  const fmt4    = v => v.toFixed(4);
+
+  S('sp_mCO2', r.mCO2,  1);  S('sp_MCO2', MCO2_ex, 3);
+  S('sp_mH2O', r.mH2Ox, 1);  S('sp_MH2O', MH2O_ex, 3);
+  S('sp_mN2',  r.mN2,   1);  S('sp_MN2',  MN2_ex,  3);
+  S('sp_mO2x', r.mO2x,  1);  S('sp_MO2x', MO2x_ex, 3);
+  S('sp_mexw', r.mexw,  1);  document.getElementById('sp_Mexw').textContent = Mexw.toFixed(3);
+
+  document.getElementById('sp_xCO2_w').textContent = fmt4(r.mCO2  / r.mexw);
+  document.getElementById('sp_xH2O_w').textContent = fmt4(r.mH2Ox / r.mexw);
+  document.getElementById('sp_xN2_w') .textContent = fmt4(r.mN2   / r.mexw);
+  document.getElementById('sp_xO2_w') .textContent = fmt4(r.mO2x  / r.mexw);
+  document.getElementById('sp_xCO2_d').textContent = fmt4(MCO2_ex / Mdry);
+  document.getElementById('sp_xN2_d') .textContent = fmt4(MN2_ex  / Mdry);
+  document.getElementById('sp_xO2_d') .textContent = fmt4(MO2x_ex / Mdry);
 
   const mbc_el = document.getElementById('mbc');
   if (r.merr < 0.01) {
