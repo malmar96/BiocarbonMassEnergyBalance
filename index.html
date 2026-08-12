@@ -1999,6 +1999,7 @@ function drawEnergyMoistureChart(svgId, snaps) {
   if (!svg || !snaps || !snaps.length) return;
   const W     = svg.getBoundingClientRect().width || 500;
   const SEGS  = [
+    { label: 'Supplemental heat',       fn: s => s.Q_supp || 0,            color: '#f97316' },
     { label: 'HHV Biochar',             fn: s => s.T11,                   color: '#fbbf24' },
     { label: 'Heat water',              fn: s => s.T5 + s.T6 + s.T7,      color: '#60a5fa' },
     { label: 'Heat biomass',            fn: s => s.T9,                     color: '#a78bfa' },
@@ -2069,8 +2070,9 @@ function updateCharts(r) {
   // HHV biomass → deduct each sink → deduct non-recoverable losses → land on recoverable heat
   const energySteps = [
     { label: 'HHV biomass',         val: r.T1,                       color: '#378add' },
+    ...(r.Q_supp > 0 ? [{ label: 'Supplemental heat', val: r.Q_supp, color: '#f97316' }] : []),
     { label: 'HHV Biochar',         val: -(r.T11),                   color: '#fbbf24' },
-    { label: 'Heat water',               val: -(r.T5 + r.T6 + r.T7),     color: '#60a5fa' },
+    { label: 'Heat water',          val: -(r.T5 + r.T6 + r.T7),     color: '#60a5fa' },
     { label: 'Heat biomass',        val: -(r.T9),                    color: '#a78bfa' },
     { label: 'Pyrolysis rxn',       val: -(r.T10),                   color: '#c084fc' },
     { label: 'Reactor losses',      val: -(r.T_loss),                color: '#fb923c' },
