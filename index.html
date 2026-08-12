@@ -1694,7 +1694,10 @@ function run() {
     const fw_v = dryb / (1 - mc_v);
     const sens_inp = {...inp, fw: fw_v, mc: mc_v, rc: sens_rc};
     const Tto_v = solveTto(sens_inp, sens_rc);
-    const s = calcAt(sens_inp, sens_rc, Tto_v);
+    const feasible_v = Tto_v >= (sens_inp.Tto_min || 650);
+    const Tto_use_v  = feasible_v ? Tto_v : (sens_inp.Tto_min || 650);
+    const s = calcAt(sens_inp, sens_rc, Tto_use_v);
+    s.Q_supp = feasible_v ? 0 : Math.max(0, -s.T23);
     snaps.push(s);
     const act = Math.abs(mc_v - inp.mc) < 0.005;
     rows += `<tr class="${act?'ar':''}">
@@ -1943,7 +1946,7 @@ function drawMoistureChart(svgId, snaps) {
   if (!svg || !snaps || !snaps.length) return;
   const W     = svg.getBoundingClientRect().width || 500;
   const SEGS  = [
-    { key: 'above_adp', label: 'Recoverable',      color: '#4ade80' },
+    { key: 'net_rec',   label: 'Net delivered',    color: '#4ade80' },
     { key: 'hx_loss',   label: 'HX losses',        color: '#f87171' },
     { key: 'acid_zone', label: 'Below dew point',  color: '#fb923c' },
     { key: 'latent',    label: 'Latent heat',       color: '#60a5fa' },
@@ -1957,7 +1960,9 @@ function drawMoistureChart(svgId, snaps) {
   const H = chartH + PAD.top + PAD.bottom;
   const C = chartColours();
   const chartW = W - PAD.left - PAD.right;
-  const maxVal = Math.max(...snaps.map(s => s.U1)) * 1.05;
+  const maxVal = Math.max(...snaps.map(s =>
+    SEGS.reduce((sum, seg) => sum + Math.max(0, s[seg.key] || 0), 0)
+  )) * 1.08;
   const xScale = v => (v / maxVal) * chartW;
   const fmtV   = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toString();
   const mcs    = [0,0.05,0.10,0.13,0.15,0.20,0.25,0.30,0.35,0.40];
@@ -1999,7 +2004,6 @@ function drawEnergyMoistureChart(svgId, snaps) {
   if (!svg || !snaps || !snaps.length) return;
   const W     = svg.getBoundingClientRect().width || 500;
   const SEGS  = [
-    { label: 'Supplemental heat',       fn: s => s.Q_supp || 0,            color: '#f97316' },
     { label: 'HHV Biochar',             fn: s => s.T11,                   color: '#fbbf24' },
     { label: 'Heat water',              fn: s => s.T5 + s.T6 + s.T7,      color: '#60a5fa' },
     { label: 'Heat biomass',            fn: s => s.T9,                     color: '#a78bfa' },
@@ -2016,7 +2020,9 @@ function drawEnergyMoistureChart(svgId, snaps) {
   const H = chartH + PAD.top + PAD.bottom;
   const C = chartColours();
   const chartW = W - PAD.left - PAD.right;
-  const maxVal = Math.max(...snaps.map(s => s.T1)) * 1.05;
+  const maxVal = Math.max(...snaps.map(s =>
+    SEGS.reduce((sum, seg) => sum + Math.max(0, seg.fn(s) || 0), 0)
+  )) * 1.08;
   const xScale = v => (v / maxVal) * chartW;
   const fmtV   = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toString();
   const mcs    = [0,0.05,0.10,0.13,0.15,0.20,0.25,0.30,0.35,0.40];
