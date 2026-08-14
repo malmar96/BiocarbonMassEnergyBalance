@@ -201,6 +201,7 @@
       <option value="hardwood">Hardwood</option>
       <option value="softwood">Softwood</option>
       <option value="rice_hulls">Rice hulls</option>
+      <option value="almond_shell">Almond shells</option>
       <option value="act_sludge">Activated sludge</option>
       <option value="custom">Custom</option>
     </select>
@@ -666,6 +667,7 @@
           <tr><td>Hardwood</td><td style="text-align:right;">49.2%</td><td style="text-align:right;">6.2%</td><td style="text-align:right;">44.6%</td><td style="text-align:right;">0.3%</td><td style="text-align:right;">19,000</td><td style="padding-left:12px;color:var(--text3);">ISO 17225-1:2021; typical range 17.5–19.5 MJ/kg</td></tr>
           <tr><td>Softwood</td><td style="text-align:right;">51.2%</td><td style="text-align:right;">6.3%</td><td style="text-align:right;">42.5%</td><td style="text-align:right;">0.2%</td><td style="text-align:right;">20,000</td><td style="padding-left:12px;color:var(--text3);">ISO 17225-1:2021; typical range 18.5–22.5 MJ/kg</td></tr>
           <tr><td>Rice hulls</td><td style="text-align:right;">38.5%</td><td style="text-align:right;">5.0%</td><td style="text-align:right;">35.8%</td><td style="text-align:right;">19.2%</td><td style="text-align:right;">15,000</td><td style="padding-left:12px;color:var(--text3);">Jenkins et al. (1998) Biomass &amp; Bioenergy; high silica ash</td></tr>
+          <tr><td>Almond shells</td><td style="text-align:right;">50.6%</td><td style="text-align:right;">6.1%</td><td style="text-align:right;">43.1%</td><td style="text-align:right;">2.0%</td><td style="text-align:right;">20,200</td><td style="padding-left:12px;color:var(--text3);">Aktas et al. (2015) Fuel; Coimbra et al. (2025) Environments; Prunus dulcis shell, dry basis, ash-free CHO</td></tr>
           <tr><td>Activated sludge</td><td style="text-align:right;">31.5%</td><td style="text-align:right;">4.7%</td><td style="text-align:right;">19.5%</td><td style="text-align:right;">38.0%</td><td style="text-align:right;">13,500</td><td style="padding-left:12px;color:var(--text3);">Fonts et al. (2012) Renew. Sust. Energy Rev.; municipal WAS</td></tr>
           <tr style="border-top:1px solid var(--border2);"><td colspan="7" style="color:var(--text3);font-size:10px;padding-top:8px;">C, H, O reported on a dry whole-sample basis. Model normalises C+H+O to 1.0 (ash-free basis) for elemental flow calculations. HHV is on a dry whole-sample basis (ash dilution already reflected).</td></tr>
         </table>
@@ -1730,11 +1732,12 @@ let lastResult = null;
 
 // ── FEEDSTOCK LIBRARY ──
 const FEEDSTOCKS = {
-  hardwood:   { xC: 0.4920, xH: 0.0622, xO: 0.4458, xash: 0.003, HHV: 19000, meta: 'ISO 17225 — C49%, H6.2%, O44%, ash 0.3%, HHV 19 MJ/kg dry' },
-  softwood:   { xC: 0.5115, xH: 0.0632, xO: 0.4253, xash: 0.002, HHV: 20000, meta: 'ISO 17225 — C51%, H6.3%, O42%, ash 0.2%, HHV 20 MJ/kg dry' },
-  rice_hulls: { xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHV: 15000, meta: 'C38%, H5%, O36% dry — high silica ash 19.2%, HHV 15 MJ/kg dry' },
-  act_sludge: { xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHV: 13500, meta: 'Municipal WAS — C31%, H4.7%, O19.5% dry, ash 38%, HHV 13.5 MJ/kg dry' },
-  custom:     { xC: null,   xH: null,   xO: null,   xash: null,  HHV: null,  meta: 'Enter values manually' }
+  hardwood:     { xC: 0.4920, xH: 0.0622, xO: 0.4458, xash: 0.003, HHV: 19000, meta: 'ISO 17225 — C49%, H6.2%, O44%, ash 0.3%, HHV 19 MJ/kg dry' },
+  softwood:     { xC: 0.5115, xH: 0.0632, xO: 0.4253, xash: 0.002, HHV: 20000, meta: 'ISO 17225 — C51%, H6.3%, O42%, ash 0.2%, HHV 20 MJ/kg dry' },
+  rice_hulls:   { xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHV: 15000, meta: 'C38%, H5%, O36% dry — high silica ash 19.2%, HHV 15 MJ/kg dry' },
+  almond_shell: { xC: 0.5060, xH: 0.0610, xO: 0.4310, xash: 0.020, HHV: 20200, meta: 'Almond shell (Prunus dulcis) — C50.6%, H6.1%, O43.1%, ash 2.0%, HHV 20.2 MJ/kg dry. Aktas et al. (2015); Coimbra et al. (2025)' },
+  act_sludge:   { xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHV: 13500, meta: 'Municipal WAS — C31%, H4.7%, O19.5% dry, ash 38%, HHV 13.5 MJ/kg dry' },
+  custom:       { xC: null,   xH: null,   xO: null,   xash: null,  HHV: null,  meta: 'Enter values manually' }
 };
 
 function setFeedstock(key) {

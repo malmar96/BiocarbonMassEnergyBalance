@@ -120,6 +120,7 @@
       <option value="hardwood">Hardwood</option>
       <option value="softwood">Softwood</option>
       <option value="rice_hulls">Rice hulls</option>
+      <option value="almond_shell">Almond shells</option>
       <option value="act_sludge">Activated sludge</option>
     </select>
 
@@ -167,10 +168,11 @@
 
 <script>
 const FS = {
-  hardwood:   {xC:0.492, xH:0.062, xO:0.446, xash:0.003, HHVbm:19000},
-  softwood:   {xC:0.512, xH:0.063, xO:0.425, xash:0.002, HHVbm:20000},
-  rice_hulls: {xC:0.4855,xH:0.0631,xO:0.4515,xash:0.192, HHVbm:15000},
-  act_sludge: {xC:0.5655,xH:0.0844,xO:0.3501,xash:0.380, HHVbm:13500},
+  hardwood:     {xC:0.492, xH:0.062, xO:0.446, xash:0.003, HHVbm:19000},
+  softwood:     {xC:0.512, xH:0.063, xO:0.425, xash:0.002, HHVbm:20000},
+  rice_hulls:   {xC:0.4855,xH:0.0631,xO:0.4515,xash:0.192, HHVbm:15000},
+  almond_shell: {xC:0.506, xH:0.061, xO:0.431, xash:0.020, HHVbm:20200},
+  act_sludge:   {xC:0.5655,xH:0.0844,xO:0.3501,xash:0.380, HHVbm:13500},
 };
 const FX = {xCbc:0.70,rHC:0.70,HHVbc:30103.88,xs:0.05,cpBM:1.5,cpSG:2.1,dH:300,Tr:25,Treac:500,Tto_min:650,lossF:0.00,hxEff:0.90};
 const N=79/21,Cw=4.2,Cs=2.0,Hv=2257,ADP=150,CON=100;
