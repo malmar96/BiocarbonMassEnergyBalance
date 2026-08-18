@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>H.O.T. M.E.S.S. — Heat & Output Tracker for Mass-Energy Stoichiometric Simulation</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
 <style>
 
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
@@ -301,6 +303,7 @@
     <div class="tab" onclick="T('exhaust')">Exhaust Recovery</div>
     <div class="tab" onclick="T('sens')">Moisture Sensitivity</div>
     <div class="tab" onclick="T('flows')">Charts</div>
+    <div class="tab" onclick="T('sankey')">Sankey</div>
     <div class="tab" onclick="T('sources')">Sources</div>
     <div class="tab" onclick="T('methods')">Methods</div>
     <div class="tab" onclick="T('scenarios')">Scenarios</div>
@@ -646,6 +649,36 @@
         </div>
       </div>
       <div></div>
+    </div>
+  </div>
+
+  <!-- SANKEY -->
+  <div class="tc" id="tab-sankey">
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header"><span class="dot blue"></span>Mass balance — Sankey (kg/h)
+          <button onclick="exportSankeyPNG('sk-mass','mass_sankey')" style="margin-left:auto;padding:3px 10px;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;">↓ PNG</button>
+        </div>
+        <div class="card-body" style="padding:14px;">
+          <div id="sk-mass"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="dot amber"></span>Energy balance — Sankey (kW)
+          <button onclick="exportSankeyPNG('sk-energy','energy_sankey')" style="margin-left:auto;padding:3px 10px;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;">↓ PNG</button>
+        </div>
+        <div class="card-body" style="padding:14px;">
+          <div id="sk-energy"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="dot green"></span>Elemental molar balance — Sankey (kmol/h)
+        <button onclick="exportSankeyPNG('sk-elemental','elemental_sankey')" style="margin-left:auto;padding:3px 10px;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;">↓ PNG</button>
+      </div>
+      <div class="card-body" style="padding:14px;">
+        <div id="sk-elemental"></div>
+      </div>
     </div>
   </div>
 
@@ -1735,7 +1768,7 @@ const FEEDSTOCKS = {
   hardwood:     { xC: 0.4920, xH: 0.0622, xO: 0.4458, xash: 0.003, HHV: 19000, meta: 'ISO 17225 — C49%, H6.2%, O44%, ash 0.3%, HHV 19 MJ/kg dry' },
   softwood:     { xC: 0.5115, xH: 0.0632, xO: 0.4253, xash: 0.002, HHV: 20000, meta: 'ISO 17225 — C51%, H6.3%, O42%, ash 0.2%, HHV 20 MJ/kg dry' },
   rice_hulls:   { xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHV: 15000, meta: 'C38%, H5%, O36% dry — high silica ash 19.2%, HHV 15 MJ/kg dry' },
-  almond_shell: { xC: 0.5060, xH: 0.0610, xO: 0.4310, xash: 0.020, HHV: 20200, meta: 'Almond shell (Prunus dulcis) — C50.6%, H6.1%, O43.1%, ash 2.0%, HHV 20.2 MJ/kg dry. Aktas et al. (2015); Coimbra et al. (2025)' },
+  almond_shell: { xC: 0.5070, xH: 0.0611, xO: 0.4319, xash: 0.020, HHV: 20200, meta: 'Almond shell (Prunus dulcis) — C50.6%, H6.1%, O43.1% dry basis; normalised to ash-free. Ash 2.0%, HHV 20.2 MJ/kg dry. Aktas et al. (2015); Coimbra et al. (2025)' },
   act_sludge:   { xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHV: 13500, meta: 'Municipal WAS — C31%, H4.7%, O19.5% dry, ash 38%, HHV 13.5 MJ/kg dry' },
   custom:       { xC: null,   xH: null,   xO: null,   xash: null,  HHV: null,  meta: 'Enter values manually' }
 };
@@ -2062,6 +2095,206 @@ function drawEnergyMoistureChart(svgId, snaps) {
   svg.innerHTML = gridLines + bars + labels + legend + yAxisLabel;
 }
 
+// ── SANKEY ──
+function drawSankey(containerId, nodes, links, unit) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  const isLight = document.documentElement.classList.contains('light');
+  const C = {
+    text:   isLight ? '#3d4e45' : '#9ca89a',
+    text2:  isLight ? '#7a8a7d' : '#5a6358',
+    link:   isLight ? 0.25 : 0.2,
+    bg:     isLight ? '#e4ddd0' : '#1c1f1d',
+  };
+
+  const W = container.clientWidth || 460;
+  const H = 340;
+  const PAD = { top: 10, right: 160, bottom: 10, left: 10 };
+
+  const svg = d3.select(container).append('svg')
+    .attr('width', W).attr('height', H);
+
+  const sankey = d3.sankey()
+    .nodeId(d => d.id)
+    .nodeAlign(d3.sankeyLeft)
+    .nodeWidth(18)
+    .nodePadding(14)
+    .extent([[PAD.left, PAD.top], [W - PAD.right, H - PAD.bottom]]);
+
+  const { nodes: sNodes, links: sLinks } = sankey({ nodes: nodes.map(d => ({...d})), links: links.map(d => ({...d})) });
+
+  const fmtV = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : Math.round(v).toString();
+
+  // Links
+  svg.append('g').selectAll('path')
+    .data(sLinks).join('path')
+    .attr('d', d3.sankeyLinkHorizontal())
+    .attr('fill', 'none')
+    .attr('stroke', d => d.color || '#4ade80')
+    .attr('stroke-width', d => Math.max(1, d.width))
+    .attr('stroke-opacity', C.link);
+
+  // Nodes
+  svg.append('g').selectAll('rect')
+    .data(sNodes).join('rect')
+    .attr('x', d => d.x0).attr('y', d => d.y0)
+    .attr('width', d => d.x1 - d.x0)
+    .attr('height', d => Math.max(1, d.y1 - d.y0))
+    .attr('fill', d => d.color || '#378add')
+    .attr('rx', 2);
+
+  // Node labels — left-aligned for source, right-aligned for sinks
+  svg.append('g').selectAll('text')
+    .data(sNodes).join('text')
+    .attr('x', d => d.x0 < W / 2 ? d.x1 + 6 : d.x1 + 6)
+    .attr('y', d => (d.y0 + d.y1) / 2)
+    .attr('dy', '0.35em')
+    .attr('font-family', 'IBM Plex Mono, monospace')
+    .attr('font-size', 10)
+    .attr('fill', C.text)
+    .text(d => `${d.label} ${fmtV(d.value)} ${unit}`);
+}
+
+function drawMassSankey(r) {
+  const nodes = [
+    { id: 'wet_feed',  label: 'Wet feed',  color: '#378add', value: r.fw },
+    { id: 'air',       label: 'Air',        color: '#60a5fa', value: r.mair },
+    { id: 'reactor',   label: 'Reactor',    color: '#4ade80' },
+    { id: 'biochar',   label: 'Biochar',    color: '#fbbf24' },
+    { id: 'exhaust',   label: 'Exhaust',    color: '#f87171' },
+  ];
+  const links = [
+    { source: 'wet_feed', target: 'reactor', value: r.fw,    color: '#378add' },
+    { source: 'air',      target: 'reactor', value: r.mair,  color: '#60a5fa' },
+    { source: 'reactor',  target: 'biochar', value: r.mbc,   color: '#fbbf24' },
+    { source: 'reactor',  target: 'exhaust', value: r.mexw,  color: '#f87171' },
+  ];
+  drawSankey('sk-mass', nodes, links, 'kg/h');
+}
+
+function drawElementalSankey(r) {
+  // Three-column layout: input streams → elements → output streams
+  // Input streams: Biomass, Feed H2O, Air
+  // Elements: C, H, O, N
+  // Output streams: Biochar, CO2, H2O (exhaust), N2, O2 (excess)
+
+  const nodes = [
+    // Input streams (col 0)
+    { id: 'in_bm',   label: 'Biomass',    color: '#378add' },
+    { id: 'in_fw',   label: 'Feed H₂O',  color: '#60a5fa' },
+    { id: 'in_air',  label: 'Air',        color: '#9ca89a' },
+    // Elements (col 1)
+    { id: 'el_C',    label: 'C',          color: '#fbbf24' },
+    { id: 'el_H',    label: 'H',          color: '#60a5fa' },
+    { id: 'el_O',    label: 'O',          color: '#f87171' },
+    { id: 'el_N',    label: 'N',          color: '#9ca89a' },
+    // Output streams (col 2)
+    { id: 'out_bc',  label: 'Biochar',    color: '#fbbf24' },
+    { id: 'out_co2', label: 'CO₂',        color: '#f87171' },
+    { id: 'out_h2o', label: 'H₂O',        color: '#60a5fa' },
+    { id: 'out_n2',  label: 'N₂',         color: '#9ca89a' },
+    { id: 'out_o2x', label: 'O₂ excess',  color: '#a78bfa' },
+  ];
+
+  // Molar flows through each element
+  // C: biomass → C → biochar + CO2
+  // H: biomass + feed water → H → exhaust H2O
+  // O: biomass + feed water + air O2 → O → biochar + CO2 + H2O + excess O2
+  // N: air → N → N2 exhaust
+
+  const mCO2  = r.mCO2,  MCO2  = mCO2  / 44;
+  const mH2Ox = r.mH2Ox, MH2Ox = mH2Ox / 18;
+  const mN2   = r.mN2,   MN2   = mN2   / 28;
+  const mO2x  = r.mO2x,  MO2x  = mO2x  / 32;
+
+  // Carbon molar flows (kmol/h of C atoms)
+  const MC_bm   = r.ab_C_bm_m;
+  const MC_bc   = r.ab_C_bc_m;
+  const MC_co2  = r.ab_C_ex_m;   // all exhaust C is in CO2
+
+  // Hydrogen molar flows (kmol/h of H atoms)
+  const MH_bm   = r.ab_H_bm_m;
+  const MH_fw   = r.ab_H_fw_m;
+  const MH_bc   = r.ab_H_bc_m;
+  const MH_h2o  = r.ab_H_ex_m;   // all exhaust H is in H2O
+
+  // Oxygen molar flows (kmol/h of O atoms)
+  const MO_bm   = r.ab_O_bm_m;
+  const MO_fw   = r.ab_O_fw_m;
+  const MO_air  = r.ab_O_air_m;
+  const MO_bc   = r.ab_O_bc_m;
+  const MO_co2  = MCO2 * 2;       // 2 O per CO2
+  const MO_h2o  = MH2Ox * 1;      // 1 O per H2O
+  const MO_o2x  = MO2x * 2;       // 2 O per O2
+
+  // Nitrogen molar flows (kmol/h of N atoms)
+  const MN_air  = r.ab_N_air_m;
+  const MN_n2   = MN2 * 2;        // 2 N per N2
+
+  const links = [
+    // Biomass → elements
+    { source: 'in_bm',  target: 'el_C', value: MC_bm,  color: '#fbbf24' },
+    { source: 'in_bm',  target: 'el_H', value: MH_bm,  color: '#60a5fa' },
+    { source: 'in_bm',  target: 'el_O', value: MO_bm,  color: '#f87171' },
+    // Feed water → elements
+    { source: 'in_fw',  target: 'el_H', value: MH_fw,  color: '#60a5fa' },
+    { source: 'in_fw',  target: 'el_O', value: MO_fw,  color: '#f87171' },
+    // Air → elements
+    { source: 'in_air', target: 'el_O', value: MO_air, color: '#f87171' },
+    { source: 'in_air', target: 'el_N', value: MN_air, color: '#9ca89a' },
+    // C → outputs
+    { source: 'el_C',   target: 'out_bc',  value: MC_bc,  color: '#fbbf24' },
+    { source: 'el_C',   target: 'out_co2', value: MC_co2, color: '#f87171' },
+    // H → outputs
+    { source: 'el_H',   target: 'out_bc',  value: MH_bc,  color: '#fbbf24' },
+    { source: 'el_H',   target: 'out_h2o', value: MH_h2o, color: '#60a5fa' },
+    // O → outputs
+    { source: 'el_O',   target: 'out_bc',  value: MO_bc,  color: '#fbbf24' },
+    { source: 'el_O',   target: 'out_co2', value: MO_co2, color: '#f87171' },
+    { source: 'el_O',   target: 'out_h2o', value: MO_h2o, color: '#60a5fa' },
+    { source: 'el_O',   target: 'out_o2x', value: MO_o2x, color: '#a78bfa' },
+    // N → outputs
+    { source: 'el_N',   target: 'out_n2',  value: MN_n2,  color: '#9ca89a' },
+  ].filter(l => l.value > 0.001);
+
+  drawSankey('sk-elemental', nodes, links, 'kmol/h');
+}
+
+function drawEnergySankey(r) {
+  const totalIn = r.T1 + (r.Q_supp || 0);
+  const nodes = [
+    { id: 'hhv',    label: 'HHV biomass',      color: '#378add' },
+    ...(r.Q_supp > 0 ? [{ id: 'supp', label: 'Supplemental', color: '#f97316' }] : []),
+    { id: 'sys',    label: 'System',            color: '#4ade80' },
+    { id: 'biochar_e', label: 'HHV biochar',   color: '#fbbf24' },
+    { id: 'water',  label: 'Heat water',        color: '#60a5fa' },
+    { id: 'heat_bm',label: 'Heat biomass',      color: '#a78bfa' },
+    { id: 'rxn',    label: 'Pyrolysis rxn',     color: '#c084fc' },
+    { id: 'losses', label: 'Reactor losses',    color: '#fb923c' },
+    { id: 'sg_air', label: 'Heat syngas+air',   color: '#34d399' },
+    { id: 'exhaust_e', label: 'Energy in exhaust', color: '#4ade80' },
+  ].filter(n => {
+    if (n.id === 'losses') return r.T_loss > 0;
+    return true;
+  });
+
+  const links = [
+    { source: 'hhv',    target: 'sys', value: r.T1,                   color: '#378add' },
+    ...(r.Q_supp > 0 ? [{ source: 'supp', target: 'sys', value: r.Q_supp, color: '#f97316' }] : []),
+    { source: 'sys', target: 'biochar_e', value: r.T11,               color: '#fbbf24' },
+    { source: 'sys', target: 'water',   value: r.T5+r.T6+r.T7,        color: '#60a5fa' },
+    { source: 'sys', target: 'heat_bm', value: r.T9,                  color: '#a78bfa' },
+    { source: 'sys', target: 'rxn',     value: r.T10,                 color: '#c084fc' },
+    ...(r.T_loss > 0 ? [{ source: 'sys', target: 'losses', value: r.T_loss, color: '#fb923c' }] : []),
+    { source: 'sys', target: 'sg_air',  value: r.T12+r.T13+r.T14,    color: '#34d399' },
+    { source: 'sys', target: 'exhaust_e', value: r.U1,               color: '#4ade80' },
+  ].filter(l => l.value > 0.01);
+
+  drawSankey('sk-energy', nodes, links, 'kW');
+}
+
 function updateCharts(r) {
   lastResult = r;
   if (!document.getElementById('tab-flows').classList.contains('active')) return;
@@ -2091,6 +2324,13 @@ function updateCharts(r) {
 
   drawWaterfall('wf-mass',   massSteps,   'kg/h');
   drawWaterfall('wf-energy', energySteps, 'kW');
+
+  // Sankey
+  if (typeof d3 !== 'undefined' && typeof d3.sankey !== 'undefined') {
+    drawMassSankey(r);
+    drawEnergySankey(r);
+    drawElementalSankey(r);
+  }
 
   // ── EXHAUST HEAT CASCADE ──
   const exhaustSteps = [
@@ -2139,6 +2379,17 @@ function chartColours() {
     barTextDk: light ? '#1e2420' : '#0d0f0e',  // text inside coloured bars
     bg:        light ? '#f5f0e8' : '#0d0f0e',
   };
+}
+
+function exportSankeyPNG(containerId, filename) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const svg = container.querySelector('svg');
+  if (!svg) { alert('No Sankey rendered yet — run a calculation first.'); return; }
+  const tempId = '_tmp_sankey_' + containerId;
+  svg.id = tempId;
+  exportChartPNG(tempId, filename);
+  svg.id = '';
 }
 
 function exportChartPNG(svgId, filename) {
@@ -2482,6 +2733,9 @@ function T(name) {
   document.getElementById('tab-'+name).classList.add('active');
   if (name === 'flows' && lastResult) updateCharts(lastResult);
   if (name === 'scenarios') renderScenariosTable();
+  if (name === 'sankey' && lastResult && typeof d3 !== 'undefined' && typeof d3.sankey !== 'undefined') {
+    setTimeout(() => { drawMassSankey(lastResult); drawEnergySankey(lastResult); drawElementalSankey(lastResult); }, 50);
+  }
 }
 
 // Initial render in case tab is already active
