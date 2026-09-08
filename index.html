@@ -205,15 +205,17 @@
       <option value="rice_hulls">Rice hulls</option>
       <option value="almond_shell">Almond shells</option>
       <option value="act_sludge">Activated sludge</option>
+      <option value="leather">Leather waste</option>
       <option value="custom">Custom</option>
     </select>
     <div class="feedstock-meta" id="feedstock-meta">ISO 17225 typical values — C49%, H6.2%, O44%</div>
     <div class="input-row dimmed" id="row-xash"><label>Ash fraction (dry)</label><input type="number" id="i_xash" value="0.003" step="0.001" min="0" max="0.6"><span class="unit">–</span></div>
     <div class="note" id="ash-note" style="margin-top:-4px;margin-bottom:8px;">≤1% — treated as zero</div>
-    <div class="input-row dimmed" id="row-xC"><label>C (ash-free dry basis)</label><input type="number" id="i_xC" value="0.492" step="0.001"><span class="unit">–</span></div>
-    <div class="input-row dimmed" id="row-xH"><label>H (ash-free dry basis)</label><input type="number" id="i_xH" value="0.062" step="0.001"><span class="unit">–</span></div>
-    <div class="input-row dimmed" id="row-xO"><label>O (ash-free dry basis)</label><input type="number" id="i_xO" value="0.446" step="0.001"><span class="unit">–</span></div>
-    <div id="cc" class="comp-check ok">C + H + O = 1.000 ✓</div>
+    <div class="input-row dimmed" id="row-xC"><label>C (dry whole-sample basis)</label><input type="number" id="i_xC" value="0.4900" step="0.001"><span class="unit">–</span></div>
+    <div class="input-row dimmed" id="row-xH"><label>H (dry whole-sample basis)</label><input type="number" id="i_xH" value="0.0600" step="0.001"><span class="unit">–</span></div>
+    <div class="input-row dimmed" id="row-xO"><label>O (dry whole-sample basis)</label><input type="number" id="i_xO" value="0.4455" step="0.001"><span class="unit">–</span></div>
+    <div class="input-row dimmed" id="row-xN"><label>N (dry whole-sample basis)</label><input type="number" id="i_xN" value="0.0015" step="0.001" min="0" max="0.2"><span class="unit">–</span></div>
+    <div id="cc" class="comp-check ok">C + H + O + N + ash = 1.000 ✓</div>
   </div>
 
   <div class="section-label">Solve For</div>
@@ -230,6 +232,8 @@
       <span class="unit">–</span>
     </div>
     <div class="input-row"><label>Carbon % in biochar</label><input type="number" id="i_xCbc" value="0.70" step="0.01"><span class="unit">–</span></div>
+    <div class="input-row dimmed" id="row-xNbcret"><label>N retention in biochar</label><input type="number" id="i_xNbcret" value="0.40" step="0.01" min="0" max="1"><span class="unit">–</span></div>
+    <div class="note">Fraction of fuel-N retained in biochar. Typically 0.30–0.60 at 400–600°C. Higher for protein-rich feedstocks.</div>
     <div class="input-row"><label>Molar H:C ratio</label><input type="number" id="i_rHC" value="0.70" step="0.05"><span class="unit">–</span></div>
     <div class="input-row"><label>HHV biochar (ash-free)</label><input type="number" id="i_HHVbc" value="30103.88" step="100"><span class="unit">kJ/kg</span></div>
   </div>
@@ -401,9 +405,9 @@
             </tr>
             <tr>
               <td>N</td>
-              <td style="color:var(--text3);">0</td><td style="color:var(--text3);">0</td><td id="ab_N_air">—</td>
+              <td id="ab_N_bm">—</td><td style="color:var(--text3);">0</td><td id="ab_N_air">—</td>
               <td id="ab_N_in">—</td>
-              <td style="color:var(--text3);">0</td><td id="ab_N_ex">—</td>
+              <td id="ab_N_bc">—</td><td id="ab_N_ex">—</td>
               <td id="ab_N_err" class="ab-err">—</td><td class="u">kg/h</td>
             </tr>
           </table>
@@ -447,9 +451,9 @@
             </tr>
             <tr>
               <td>N</td>
-              <td style="color:var(--text3);">0</td><td style="color:var(--text3);">0</td><td id="ab_N_air_m">—</td>
+              <td id="ab_N_bm_m">—</td><td style="color:var(--text3);">0</td><td id="ab_N_air_m">—</td>
               <td id="ab_N_in_m">—</td>
-              <td style="color:var(--text3);">0</td><td id="ab_N_ex_m">—</td>
+              <td id="ab_N_bc_m">—</td><td id="ab_N_ex_m">—</td>
               <td id="ab_N_err_m" class="ab-err">—</td><td class="u">kmol/h</td>
             </tr>
           </table>
@@ -497,6 +501,12 @@
             <td id="sp_xO2_w">—</td>
             <td id="sp_xO2_d">—</td>
           </tr>
+          <tr><td>NO (fuel-N)</td>
+            <td id="sp_mNO">—</td>
+            <td id="sp_MNO">—</td>
+            <td id="sp_xNO_w">—</td>
+            <td style="color:var(--text3);">trace</td>
+          </tr>
           <tr class="sub"><td>Total wet exhaust</td>
             <td id="sp_mexw">—</td>
             <td id="sp_Mexw">—</td>
@@ -505,7 +515,7 @@
           </tr>
         </table>
         <div class="note" style="margin-top:8px;">
-          Mol frac (dry) excludes H₂O — consistent with how xs (excess O₂) is specified. Verify O₂ dry mol frac = xs input.
+          Mol frac (dry) excludes H₂O. O₂ dry mol frac should equal xs input. NO represents 50% of fuel-bound N converted to nitric oxide; the remaining 50% exits as N₂.
         </div>
       </div>
     </div>
@@ -1105,8 +1115,8 @@ function onInput() { checkComp(); updateAshNote(); run(); }
 // ── CORE MASS+ENERGY CALCULATION at a given (rc, Tto) ──
 // Both rc and Tto must be provided. One of them will have been solved externally.
 function calcAt(inp, rc, Tto) {
-  const {fw, mc, xC, xH, xO, xash, xCbc, rHC, HHVbc, xs,
-         HHVbm, cpBM, cpSG, dH, lossF, Tr, Treac} = inp;
+  const {fw, mc, xC, xH, xO, xN, xash, xCbc, rHC, HHVbc, xs,
+         HHVbm, cpBM, cpSG, dH, lossF, Tr, Treac, xN_bc_ret} = inp;
   const rHCm = rHC / 12;
 
   // Air Cp at mean zone temperature (T_ref → T_TO) — computed from Shomate, not user input
@@ -1115,43 +1125,66 @@ function calcAt(inp, rc, Tto) {
   // Feed
   const md   = fw * (1 - mc);
   const mw   = fw * mc;
-  // Ash: only active when xash > 1%
-  const ash_active = (xash || 0) > 0.01;
-  const x_ash = ash_active ? (xash || 0) : 0;
+  // Ash: always track in mass balance; threshold only affects display note
+  const ash_active = (xash || 0) > 0.01;  // display flag only
+  const x_ash = xash || 0;                 // always use actual ash fraction
   const m_ash = md * x_ash;
   const m_org = md * (1 - x_ash);   // combustible / pyrolyzable fraction
 
-  const mCbm = m_org * xC, mHbm = m_org * xH, mObm = m_org * xO;
+  // Elemental flows — whole-sample dry basis (xC+xH+xO+xN+xash = 1)
+  const mCbm = md * xC;
+  const mHbm = md * xH;
+  const mObm = md * xO;
+  const mNbm = md * (xN || 0);
 
   // Biochar — rc applies to organic fraction only; ash exits with biochar
   const mbc_org = m_org * rc;
-  const mbc     = mbc_org + m_ash;   // total biochar mass
+  const mbc     = mbc_org + m_ash;
   const mCbc    = mbc_org * xCbc;
   const mHbc    = mCbc * rHCm;
-  const mObc    = mbc_org - mCbc - mHbc;
+  // N in biochar: Option C — user-specified retention fraction
+  const f_Nbc   = Math.min(1, Math.max(0, xN_bc_ret || 0.40));
+  const mNbc_raw = mNbm * f_Nbc;
+  const mNbc    = Math.min(mNbc_raw, Math.max(0, mbc_org - mCbc - mHbc));  // clamp so mObc >= 0
+  const mObc    = mbc_org - mCbc - mHbc - mNbc;
+  const mNbc_clamped = mNbc < mNbc_raw;  // flag for UI warning
 
-  // Syngas
+  // Syngas elemental flows
   const msg  = m_org - mbc_org;
   const mCsg = mCbm - mCbc;
   const mHsg = mHbm - mHbc;
   const mOsg = mObm - mObc;
+  const mNsg = mNbm - mNbc;   // volatile fuel-N going to combustion
 
-  // Combustion (D31–D44)
-  const mCO2   = (44/12)*mCsg;
-  const MCO2   = mCO2/44;
-  const mH2Oc  = (36/4)*mHsg;
-  const mO2g   = (32/44)*mCO2 + (16/18)*mH2Oc;
-  const mO2n   = mO2g - mOsg;
-  const MO2n   = mO2n/32;
-  const Mdry   = (N_AIR*MO2n + MCO2) / (1 - (N_AIR+1)*xs);
-  const MO2x   = xs * Mdry;
-  const mO2x   = MO2x * 32;
-  const MO2tot = MO2x + MO2n;
-  const MN2    = (0.79/0.21) * MO2tot;
-  const mN2    = MN2 * 28;
-  const mair   = mN2 + MO2tot*32;
-  const mH2Ox  = mH2Oc + mw;
-  const mexw   = mN2 + mO2x + mCO2 + mH2Ox;
+  // Fuel-N combustion: 50% → N₂, 50% → NO (IEA Bioenergy Task 32; typical at 500–900°C)
+  // Exact algebra from verified mass balance spreadsheet
+  const MCO2      = mCsg / 12;                          // CO2 molar from C combustion
+  const mCO2      = MCO2 * 44;
+  const MNO       = 0.5 * mNsg / 14;                    // NO molar from fuel-N
+  const mNO       = MNO * 30;
+  const mN2_fuel  = 0.5 * mNsg;                          // N₂ mass from fuel-N (kg/h): half N atom mass pairs into N2
+  const MN2_fuel  = mN2_fuel / 28;                       // N2 molar from fuel-N (= MNO/2)
+  const MH2Oc     = mHsg / 2;                           // H2O molar from H combustion
+  const mH2Oc     = MH2Oc * 18;
+  const mH2Ox     = mH2Oc + mw;                         // total exhaust water (comb. + feed)
+
+  // O2 stoichiometry — total O atoms needed / 2 = O2 moles needed
+  const MO2_stoich = (MCO2*2 + MNO + MH2Oc) / 2;       // total O2 demand (kmol/h)
+  const MO2n       = MO2_stoich - (mOsg/16) / 2;        // net O2 from air (subtract fuel O)
+  // Mdry numerator includes NO and N2_fuel as dry exhaust species
+  const Mdry       = (N_AIR*MO2n + MN2_fuel + MNO + MCO2) / (1 - (N_AIR+1)*xs);
+  const MO2x       = xs * Mdry;                         // excess O2 molar
+  const MO2_air    = MO2x + MO2n;                       // total O2 from air
+  const MN2_air    = N_AIR * MO2_air;                   // N2 from air molar
+  const mO2x       = MO2x * 32;
+  const mO2_air    = MO2_air * 32;
+  const mN2_air    = MN2_air * 28;
+  const mN2        = mN2_air + mN2_fuel;                 // total N2 in exhaust
+  const mair       = mO2_air + mN2_air;                  // total air mass
+  const mexw       = mCO2 + mNO + mN2_fuel + mO2x + mH2Oc + mw + mN2_air;  // wet exhaust
+  // legacy aliases for downstream compatibility
+  const mO2n       = MO2n * 32;
+  const MO2n_mol   = MO2n;
 
   const tin  = fw + mair;
   const tout = mbc + mexw;   // mbc now includes ash — mass balance still closes
@@ -1200,31 +1233,32 @@ function calcAt(inp, rc, Tto) {
 
   // ── ATOM BALANCE ──
   // Per-stream inputs (mass, kg/h)
-  const ab_C_bm   = mCbm;                        // C from biomass organic
-  const ab_H_bm   = mHbm;                        // H from biomass organic
-  const ab_H_fw   = (2/18)*mw;                   // H from feed water
-  const ab_O_bm   = mObm;                        // O from biomass organic
-  const ab_O_fw   = (16/18)*mw;                  // O from feed water
-  const ab_O_air  = mO2n + mO2x;                 // O from air (stoich + excess O2)
-  const ab_N_air  = mN2;                         // N from air (as N2)
+  const ab_C_bm   = mCbm;
+  const ab_H_bm   = mHbm;
+  const ab_H_fw   = (2/18)*mw;
+  const ab_O_bm   = mObm;
+  const ab_O_fw   = (16/18)*mw;
+  const ab_O_air  = mO2n + mO2x;
+  const ab_N_bm   = mNbm;                    // all fuel-N from biomass
+  const ab_N_air  = mN2 - mN2_fuel;          // atmospheric N₂ only
 
   // Total inputs
   const ab_C_in   = ab_C_bm;
   const ab_H_in   = ab_H_bm + ab_H_fw;
   const ab_O_in   = ab_O_bm + ab_O_fw + ab_O_air;
-  const ab_N_in   = ab_N_air;
+  const ab_N_in   = ab_N_bm + ab_N_air;
 
   // Per-stream outputs — biochar
   const ab_C_bc   = mCbc;
   const ab_H_bc   = mHbc;
   const ab_O_bc   = mObc;
-  const ab_N_bc   = 0;
+  const ab_N_bc   = mNbc;    // N retained in biochar
 
   // Per-stream outputs — exhaust
-  const ab_C_ex   = (12/44)*mCO2;               // C in CO2
-  const ab_H_ex   = (2/18)*mH2Ox;               // H in exhaust H2O
-  const ab_O_ex   = (32/44)*mCO2 + (16/18)*mH2Ox + mO2x;  // O in CO2 + H2O + excess O2
-  const ab_N_ex   = mN2;                         // all N2 to exhaust
+  const ab_C_ex   = (12/44)*mCO2;
+  const ab_H_ex   = (2/18)*mH2Ox;
+  const ab_O_ex   = (32/44)*mCO2 + (16/18)*mH2Ox + mO2x + (16/30)*mNO;
+  const ab_N_ex   = mN2 + mNO;    // N₂ (atm + fuel) + NO
 
   // Totals out and residuals
   const ab_C_out  = ab_C_bc + ab_C_ex;
@@ -1241,26 +1275,26 @@ function calcAt(inp, rc, Tto) {
   const ab_C_bm_m = ab_C_bm / 12;  const ab_H_bm_m = ab_H_bm / 1;
   const ab_H_fw_m = ab_H_fw / 1;   const ab_O_bm_m = ab_O_bm / 16;
   const ab_O_fw_m = ab_O_fw / 16;  const ab_O_air_m= ab_O_air/ 16;
-  const ab_N_air_m= ab_N_air/ 14;
+  const ab_N_bm_m = ab_N_bm / 14;  const ab_N_air_m= ab_N_air/ 14;
   const ab_C_in_m  = ab_C_in  / 12;  const ab_C_bc_m  = ab_C_bc  / 12;  const ab_C_ex_m  = ab_C_ex  / 12;
   const ab_H_in_m  = ab_H_in  / 1;   const ab_H_bc_m  = ab_H_bc  / 1;   const ab_H_ex_m  = ab_H_ex  / 1;
   const ab_O_in_m  = ab_O_in  / 16;  const ab_O_bc_m  = ab_O_bc  / 16;  const ab_O_ex_m  = ab_O_ex  / 16;
-  const ab_N_in_m  = ab_N_in  / 14;  const ab_N_bc_m  = 0;               const ab_N_ex_m  = ab_N_ex  / 14;
+  const ab_N_in_m  = ab_N_in  / 14;  const ab_N_bc_m  = ab_N_bc  / 14;  const ab_N_ex_m  = ab_N_ex  / 14;
 
   return {
     rc, Tto,
     md, mw, fw, m_ash, m_org, ash_active,
-    mCbm, mHbm, mObm,
-    mbc, mbc_org, mCbc, mHbc, mObc,
-    msg, mCsg, mHsg, mOsg, sgmc: mw/msg,
-    mCO2, mH2Oc, mH2Ox, mN2, mO2x,
-    mO2g, mOsg, mO2n, mair, mexw,
+    mCbm, mHbm, mObm, mNbm,
+    mbc, mbc_org, mCbc, mHbc, mObc, mNbc, mNbc_clamped,
+    msg, mCsg, mHsg, mOsg, mNsg, sgmc: mw/(mbc_org + (m_org-mbc_org)),
+    mCO2, mH2Oc, mH2Ox, mN2, mO2x, mNO, mN2_fuel,
+    mO2_air, mO2n, mO2x, mOsg, mO2n, mair, mexw,
     merr, tin, tout,
     Cseq: mCbc/mCbm,
     xCO2: mCO2/mexw, xH2O: mH2Ox/mexw, xN2: mN2/mexw, xO2: mO2x/mexw,
     // atom balance — per-stream inputs
-    ab_C_bm, ab_H_bm, ab_H_fw, ab_O_bm, ab_O_fw, ab_O_air, ab_N_air,
-    ab_C_bm_m, ab_H_bm_m, ab_H_fw_m, ab_O_bm_m, ab_O_fw_m, ab_O_air_m, ab_N_air_m,
+    ab_C_bm, ab_H_bm, ab_H_fw, ab_O_bm, ab_O_fw, ab_O_air, ab_N_bm, ab_N_air,
+    ab_C_bm_m, ab_H_bm_m, ab_H_fw_m, ab_O_bm_m, ab_O_fw_m, ab_O_air_m, ab_N_bm_m, ab_N_air_m,
     // atom balance — totals and outputs
     ab_C_in, ab_H_in, ab_O_in, ab_N_in,
     ab_C_bc, ab_H_bc, ab_O_bc, ab_N_bc,
@@ -1457,8 +1491,8 @@ let lastTto = 725.5, lastRc = 0.25;   // used when switching modes
 function getInp() {
   const base = {
     fw:    g('i_fw'),  mc:    Math.min(0.999, Math.max(0, g('i_mc'))),
-    xC:    g('i_xC'),  xH:    g('i_xH'),  xO:    g('i_xO'),
-    xash:  g('i_xash'),
+    xC:    g('i_xC'),  xH:    g('i_xH'),  xO:    g('i_xO'),  xN: g('i_xN') || 0,
+    xash:  g('i_xash'), xN_bc_ret: Math.min(1, Math.max(0, g('i_xNbcret') || 0.40)),
     xCbc:  g('i_xCbc'),rHC:   g('i_rHC'), HHVbc: g('i_HHVbc'),
     xs:    g('i_xs'),  hxEff: Math.min(1, Math.max(0, g('i_hxEff') || 0.9)),  HHVbm: g('i_HHVbm'),
     cpBM:  g('i_cpBM'),cpSG:  g('i_cpSG'),
@@ -1475,10 +1509,10 @@ function getInp() {
 }
 
 function checkComp() {
-  const s = g('i_xC')+g('i_xH')+g('i_xO');
+  const s = g('i_xC')+g('i_xH')+g('i_xO')+(g('i_xN')||0)+(g('i_xash')||0);
   const el = document.getElementById('cc');
   const ok = Math.abs(s-1)<0.005;
-  el.textContent = `C + H + O = ${s.toFixed(3)} ${ok ? '✓' : '✗  (must sum to 1)'}`;
+  el.textContent = `C + H + O + N + ash = ${s.toFixed(3)} ${ok ? '✓' : '✗  (must sum to 1)'}`;
   el.className = 'comp-check ' + (ok ? 'ok' : 'warn');
 }
 
@@ -1607,7 +1641,7 @@ function run() {
   S('m_exw',r.mexw,1); S('m_CO2',r.mCO2,1); S('m_H2O',r.mH2Ox,1); S('m_N2',r.mN2,1); S('m_O2x',r.mO2x,1);
   S('m_sg',r.msg,1); S('m_Csg',r.mCsg,2); S('m_Hsg',r.mHsg,2); S('m_Osg',r.mOsg,2);
   document.getElementById('m_sgmc').textContent = fmt(r.sgmc,4);
-  S('m_O2g',r.mO2g,1); S('m_Ocr',r.mOsg,1); S('m_O2n',r.mO2n,1); S('m_O2e',r.mO2x,1); S('m_air2',r.mair,1);
+  S('m_O2g',r.mO2_air,1); S('m_Ocr',r.mOsg,1); S('m_O2n',r.mO2n,1); S('m_O2e',r.mO2x,1); S('m_air2',r.mair,1);
 
   // ── ATOM BALANCE DISPLAY ──
   const abRow = (pre, v_bm, v_fw, v_air, v_in, v_bc, v_ex, v_err, dp) => {
@@ -1623,7 +1657,7 @@ function run() {
   abRow('ab_C', r.ab_C_bm, 0,          0,          r.ab_C_in, r.ab_C_bc, r.ab_C_ex, r.ab_C_err, 1);
   abRow('ab_H', r.ab_H_bm, r.ab_H_fw,  0,          r.ab_H_in, r.ab_H_bc, r.ab_H_ex, r.ab_H_err, 1);
   abRow('ab_O', r.ab_O_bm, r.ab_O_fw,  r.ab_O_air, r.ab_O_in, r.ab_O_bc, r.ab_O_ex, r.ab_O_err, 1);
-  abRow('ab_N', 0,          0,          r.ab_N_air, r.ab_N_in, 0,         r.ab_N_ex, r.ab_N_err, 1);
+  abRow('ab_N', r.ab_N_bm, 0,          r.ab_N_air, r.ab_N_in, r.ab_N_bc,  r.ab_N_ex, r.ab_N_err, 1);
 
   const abRowM = (pre, v_bm, v_fw, v_air, v_in, v_bc, v_ex, v_err, dp) => {
     const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=Number(v).toFixed(dp); };
@@ -1638,34 +1672,37 @@ function run() {
   abRowM('ab_C', r.ab_C_bm_m, 0,             0,              r.ab_C_in_m, r.ab_C_bc_m, r.ab_C_ex_m, r.ab_C_in_m-(r.ab_C_bc_m+r.ab_C_ex_m), 3);
   abRowM('ab_H', r.ab_H_bm_m, r.ab_H_fw_m,   0,              r.ab_H_in_m, r.ab_H_bc_m, r.ab_H_ex_m, r.ab_H_in_m-(r.ab_H_bc_m+r.ab_H_ex_m), 3);
   abRowM('ab_O', r.ab_O_bm_m, r.ab_O_fw_m,   r.ab_O_air_m,  r.ab_O_in_m, r.ab_O_bc_m, r.ab_O_ex_m, r.ab_O_in_m-(r.ab_O_bc_m+r.ab_O_ex_m), 3);
-  abRowM('ab_N', 0,            0,              r.ab_N_air_m,  r.ab_N_in_m, 0,            r.ab_N_ex_m, r.ab_N_in_m-r.ab_N_ex_m,               3);
+  abRowM('ab_N', r.ab_N_bm_m, 0,       r.ab_N_air_m, r.ab_N_in_m, r.ab_N_bc_m, r.ab_N_ex_m, r.ab_N_in_m-(r.ab_N_bc_m+r.ab_N_ex_m), 3);
 
   // ── EXHAUST SPECIES COMPOSITION ──
   const MCO2_ex = r.mCO2 / 44;
   const MH2O_ex = r.mH2Ox / 18;
   const MN2_ex  = r.mN2  / 28;
   const MO2x_ex = r.mO2x / 32;
-  const Mexw    = MCO2_ex + MH2O_ex + MN2_ex + MO2x_ex;
-  const Mdry    = MCO2_ex + MN2_ex + MO2x_ex;
+  const MNO_ex  = r.mNO  / 30;
+  const Mexw    = MCO2_ex + MH2O_ex + MN2_ex + MO2x_ex + MNO_ex;
+  const Mdry    = MCO2_ex + MN2_ex + MO2x_ex + MNO_ex;
   const fmt4    = v => v.toFixed(4);
 
   S('sp_mCO2', r.mCO2,  1);  S('sp_MCO2', MCO2_ex, 3);
   S('sp_mH2O', r.mH2Ox, 1);  S('sp_MH2O', MH2O_ex, 3);
   S('sp_mN2',  r.mN2,   1);  S('sp_MN2',  MN2_ex,  3);
   S('sp_mO2x', r.mO2x,  1);  S('sp_MO2x', MO2x_ex, 3);
+  S('sp_mNO',  r.mNO,   2);  S('sp_MNO',  MNO_ex,  4);
   S('sp_mexw', r.mexw,  1);  document.getElementById('sp_Mexw').textContent = Mexw.toFixed(3);
 
   document.getElementById('sp_xCO2_w').textContent = fmt4(r.mCO2  / r.mexw);
   document.getElementById('sp_xH2O_w').textContent = fmt4(r.mH2Ox / r.mexw);
   document.getElementById('sp_xN2_w') .textContent = fmt4(r.mN2   / r.mexw);
   document.getElementById('sp_xO2_w') .textContent = fmt4(r.mO2x  / r.mexw);
+  document.getElementById('sp_xNO_w') .textContent = fmt4(r.mNO   / r.mexw);
   document.getElementById('sp_xCO2_d').textContent = fmt4(MCO2_ex / Mdry);
   document.getElementById('sp_xN2_d') .textContent = fmt4(MN2_ex  / Mdry);
   document.getElementById('sp_xO2_d') .textContent = fmt4(MO2x_ex / Mdry);
 
   const mbc_el = document.getElementById('mbc');
   if (r.merr < 0.01) {
-    mbc_el.innerHTML = `<div class="bcheck ok">✓ Mass balance closes — error ${r.merr.toFixed(5)}%&nbsp;&nbsp;(In: ${fmt(r.tin,1)} kg/h | Out: ${fmt(r.tout,1)} kg/h)</div>`;
+    mbc_el.innerHTML = `<div class="bcheck ok">✓ Mass balance closes — error ${r.merr.toFixed(5)}%&nbsp;&nbsp;(In: ${fmt(r.tin,1)} kg/h | Out: ${fmt(r.tout,1)} kg/h)${r.mNbc_clamped ? ' &nbsp;<span style="color:var(--amber)">⚠ N retention clamped — biochar C+H leaves no room for all retained N; xN_bc_ret reduced automatically</span>' : ''}</div>`;
     document.getElementById('sm').textContent = `● MASS OK (Δ=${r.merr.toFixed(5)}%)`;
     document.getElementById('sm').className = 'ok';
   } else {
@@ -1765,12 +1802,13 @@ let lastResult = null;
 
 // ── FEEDSTOCK LIBRARY ──
 const FEEDSTOCKS = {
-  hardwood:     { xC: 0.4920, xH: 0.0622, xO: 0.4458, xash: 0.003, HHV: 19000, meta: 'ISO 17225 — C49%, H6.2%, O44%, ash 0.3%, HHV 19 MJ/kg dry' },
-  softwood:     { xC: 0.5115, xH: 0.0632, xO: 0.4253, xash: 0.002, HHV: 20000, meta: 'ISO 17225 — C51%, H6.3%, O42%, ash 0.2%, HHV 20 MJ/kg dry' },
-  rice_hulls:   { xC: 0.4855, xH: 0.0631, xO: 0.4515, xash: 0.192, HHV: 15000, meta: 'C38%, H5%, O36% dry — high silica ash 19.2%, HHV 15 MJ/kg dry' },
-  almond_shell: { xC: 0.5070, xH: 0.0611, xO: 0.4319, xash: 0.020, HHV: 20200, meta: 'Almond shell (Prunus dulcis) — C50.6%, H6.1%, O43.1% dry basis; normalised to ash-free. Ash 2.0%, HHV 20.2 MJ/kg dry. Aktas et al. (2015); Coimbra et al. (2025)' },
-  act_sludge:   { xC: 0.5655, xH: 0.0844, xO: 0.3501, xash: 0.380, HHV: 13500, meta: 'Municipal WAS — C31%, H4.7%, O19.5% dry, ash 38%, HHV 13.5 MJ/kg dry' },
-  custom:       { xC: null,   xH: null,   xO: null,   xash: null,  HHV: null,  meta: 'Enter values manually' }
+  hardwood:     { xC:0.4900, xH:0.0600, xO:0.4455, xN:0.0015, xash:0.003, xN_bc_ret:0.40, HHV:19000, meta:'Whole-sample dry: C49.0%, H6.0%, O44.6%, N0.15%, ash 0.3%. ISO 17225-2; Baker (1983) USDA FPL.' },
+  softwood:     { xC:0.5100, xH:0.0630, xO:0.4240, xN:0.0010, xash:0.002, xN_bc_ret:0.40, HHV:20000, meta:'Whole-sample dry: C51.0%, H6.3%, O42.4%, N0.1%, ash 0.2%. ISO 17225-2; CEN/TS 14961.' },
+  rice_hulls:   { xC:0.3850, xH:0.0510, xO:0.3680, xN:0.0040, xash:0.192, xN_bc_ret:0.40, HHV:14500, meta:'Whole-sample dry: C38.5%, H5.1%, O36.8%, N0.4%, ash 19.2%. Jenkins et al. (1998) Biomass & Bioenergy.' },
+  almond_shell: { xC:0.4970, xH:0.0600, xO:0.4170, xN:0.0060, xash:0.020, xN_bc_ret:0.40, HHV:20200, meta:'Whole-sample dry: C49.7%, H6.0%, O41.7%, N0.6%, ash 2.0%. Aktas et al. (2015) Fuel; Coimbra et al. (2025) Environments.' },
+  act_sludge:   { xC:0.3500, xH:0.0550, xO:0.1650, xN:0.0500, xash:0.380, xN_bc_ret:0.55, HHV:14000, meta:'Whole-sample dry: C35.0%, H5.5%, O16.5%, N5.0%, ash 38.0%. Fonts et al. (2012) RSER; Springer 18-study avg (2018); PMC (2024).' },
+  leather:      { xC:0.4400, xH:0.0650, xO:0.2550, xN:0.1400, xash:0.100, xN_bc_ret:0.50, HHV:18500, meta:'Whole-sample dry: C44%, H6.5%, O25.5%, N14%, ash 10%. Energies (2022) microwave pyrolysis; ScienceDirect solid leather waste (2019). High-N feedstock.' },
+  custom:       { xC:null,   xH:null,   xO:null,   xN:null,   xash:null,  xN_bc_ret:0.40, HHV:null,  meta:'Enter values manually. Convention: xC + xH + xO + xN + xash = 1.0 (dry whole-sample basis).' }
 };
 
 function setFeedstock(key) {
@@ -1778,8 +1816,8 @@ function setFeedstock(key) {
   const isCustom = key === 'custom';
   document.getElementById('feedstock-meta').textContent = f.meta;
 
-  // Populate and lock/unlock fields
-  ['xC','xH','xO','xash'].forEach(id => {
+  // Populate and lock/unlock elemental fields
+  ['xC','xH','xO','xN','xash'].forEach(id => {
     const row = document.getElementById('row-' + id);
     const inp = document.getElementById('i_' + id);
     if (!isCustom) {
@@ -1791,6 +1829,20 @@ function setFeedstock(key) {
       inp.readOnly = false;
     }
   });
+
+  // xN_bc_ret: locked for presets, editable for custom
+  const xNbcRow = document.getElementById('row-xNbcret');
+  const xNbcInp = document.getElementById('i_xNbcret');
+  if (xNbcRow && xNbcInp) {
+    xNbcInp.value = (f.xN_bc_ret || 0.40).toFixed(2);
+    if (!isCustom) {
+      xNbcRow.classList.add('dimmed');
+      xNbcInp.readOnly = true;
+    } else {
+      xNbcRow.classList.remove('dimmed');
+      xNbcInp.readOnly = false;
+    }
+  }
 
   // HHV biomass: locked for presets, editable for custom
   const HHVrow = document.getElementById('row-HHVbm');
@@ -1823,6 +1875,7 @@ function updateAshNote() {
 attachListeners();
 // Override: composition inputs are read-only for non-custom feedstocks — re-run on change anyway
 document.getElementById('i_feedstock').addEventListener('change', () => { attachListeners(); });
+setFeedstock(document.getElementById('i_feedstock').value);  // apply library values on init
 run();
 
 // ── WATERFALL CHARTS ──
@@ -2196,6 +2249,7 @@ function drawElementalSankey(r) {
     { id: 'out_h2o', label: 'H₂O',        color: '#60a5fa' },
     { id: 'out_n2',  label: 'N₂',         color: '#9ca89a' },
     { id: 'out_o2x', label: 'O₂ excess',  color: '#a78bfa' },
+    { id: 'out_no',  label: 'NO',          color: '#f97316' },
   ];
 
   // Molar flows through each element
@@ -2231,7 +2285,9 @@ function drawElementalSankey(r) {
 
   // Nitrogen molar flows (kmol/h of N atoms)
   const MN_air  = r.ab_N_air_m;
-  const MN_n2   = MN2 * 2;        // 2 N per N2
+  const MN_bm   = r.ab_N_bm_m;
+  const MN_n2   = r.mN2 / 28 * 2;    // N atoms in N2 exhaust (×2 since N2 has 2 N)
+  const MN_no   = r.mNO / 14;         // N atoms in NO
 
   const links = [
     // Biomass → elements
@@ -2244,6 +2300,8 @@ function drawElementalSankey(r) {
     // Air → elements
     { source: 'in_air', target: 'el_O', value: MO_air, color: '#f87171' },
     { source: 'in_air', target: 'el_N', value: MN_air, color: '#9ca89a' },
+    // Biomass N → element
+    { source: 'in_bm',  target: 'el_N', value: MN_bm,  color: '#f97316' },
     // C → outputs
     { source: 'el_C',   target: 'out_bc',  value: MC_bc,  color: '#fbbf24' },
     { source: 'el_C',   target: 'out_co2', value: MC_co2, color: '#f87171' },
@@ -2255,8 +2313,10 @@ function drawElementalSankey(r) {
     { source: 'el_O',   target: 'out_co2', value: MO_co2, color: '#f87171' },
     { source: 'el_O',   target: 'out_h2o', value: MO_h2o, color: '#60a5fa' },
     { source: 'el_O',   target: 'out_o2x', value: MO_o2x, color: '#a78bfa' },
-    // N → outputs
+    { source: 'el_O',   target: 'out_no',  value: r.mNO * (16/30), color: '#f97316' },
+    // N → outputs (50% N2, 50% NO)
     { source: 'el_N',   target: 'out_n2',  value: MN_n2,  color: '#9ca89a' },
+    { source: 'el_N',   target: 'out_no',  value: r.mNO / 14, color: '#f97316' },
   ].filter(l => l.value > 0.001);
 
   drawSankey('sk-elemental', nodes, links, 'kmol/h');
@@ -2592,7 +2652,7 @@ function loadScenarioIntoModel(name) {
   if (fsEl) { fsEl.value = sc.feedstock || 'custom'; setFeedstock(sc.feedstock || 'custom'); }
   // Set all numeric inputs
   const map = {
-    fw:'i_fw', mc:'i_mc', xash:'i_xash', xC:'i_xC', xH:'i_xH', xO:'i_xO',
+    fw:'i_fw', mc:'i_mc', xash:'i_xash', xC:'i_xC', xH:'i_xH', xO:'i_xO', xN:'i_xN',
     HHVbm:'i_HHVbm', xCbc:'i_xCbc', rHC:'i_rHC', HHVbc:'i_HHVbc',
     xs:'i_xs', cpBM:'i_cpBM', cpSG:'i_cpSG', lossF:'i_lossF', dH:'i_dH',
     Tr:'i_Tr', Treac:'i_Treac', Tto_min:'i_Tto_min'
