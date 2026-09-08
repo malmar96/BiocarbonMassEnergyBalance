@@ -1848,6 +1848,7 @@ function setFeedstock(key) {
   const HHVrow = document.getElementById('row-HHVbm');
   const HHVinp = document.getElementById('i_HHVbm');
   if (!isCustom) {
+    HHVinp.value = f.HHV;
     HHVrow.classList.add('dimmed');
     HHVinp.readOnly = true;
   } else {
