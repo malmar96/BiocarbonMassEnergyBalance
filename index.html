@@ -2248,9 +2248,9 @@ function drawElementalSankey(r) {
     { id: 'out_bc',  label: 'Biochar',    color: '#fbbf24' },
     { id: 'out_co2', label: 'CO₂',        color: '#f87171' },
     { id: 'out_h2o', label: 'H₂O',        color: '#60a5fa' },
-    { id: 'out_n2',  label: 'N₂',         color: '#9ca89a' },
+    { id: 'out_exhaust_N', label: 'Exhaust N', color: '#9ca89a' },
     { id: 'out_o2x', label: 'O₂ excess',  color: '#a78bfa' },
-    { id: 'out_no',  label: 'NO',          color: '#f97316' },
+    { id: 'out_no',  label: 'NO (O only)', color: '#f97316' },
   ];
 
   // Molar flows through each element
@@ -2284,25 +2284,30 @@ function drawElementalSankey(r) {
   const MO_h2o  = MH2Ox * 1;      // 1 O per H2O
   const MO_o2x  = MO2x * 2;       // 2 O per O2
 
-  // Nitrogen molar flows (kmol/h of N atoms)
-  const MN_air  = r.ab_N_air_m;
-  const MN_bm   = r.ab_N_bm_m;
-  const MN_n2   = r.mN2 / 28 * 2;    // N atoms in N2 exhaust (×2 since N2 has 2 N)
-  const MN_no   = r.mNO / 14;         // N atoms in NO
+  // Nitrogen molar flows — matching spreadsheet AND AGAIN F-column exactly
+  // F24=mNbm/14 (N from biomass), F58=MN2_air*2 (N from air)
+  // F30=mNbc/14 (N to biochar), F45=mNsg/14+MN2_air*2 (N to exhaust)
+  const MN_bm   = r.ab_N_bm_m;                    // mNbm/14: N atoms from biomass
+  const MN2_air = (r.mN2 - r.mN2_fuel) / 28;      // kmol atmospheric N2
+  const MN_air  = MN2_air * 2;                     // N atoms from atm N2 (F58=F56*2)
+  const MN_bc   = r.mNbc / 14;                     // N atoms to biochar (F30)
+  const MN_ex   = r.mNsg / 14 + MN_air;           // total N atoms to exhaust (F45)
+  // O atoms in NO for el_O → out_no link
+  const MO_no   = r.mNO * (16/30) / 16;            // mNO/30 kmol O atoms in NO
+
 
   const links = [
     // Biomass → elements
     { source: 'in_bm',  target: 'el_C', value: MC_bm,  color: '#fbbf24' },
     { source: 'in_bm',  target: 'el_H', value: MH_bm,  color: '#60a5fa' },
     { source: 'in_bm',  target: 'el_O', value: MO_bm,  color: '#f87171' },
+    { source: 'in_bm',  target: 'el_N', value: MN_bm,  color: '#f97316' },
     // Feed water → elements
     { source: 'in_fw',  target: 'el_H', value: MH_fw,  color: '#60a5fa' },
     { source: 'in_fw',  target: 'el_O', value: MO_fw,  color: '#f87171' },
     // Air → elements
     { source: 'in_air', target: 'el_O', value: MO_air, color: '#f87171' },
     { source: 'in_air', target: 'el_N', value: MN_air, color: '#9ca89a' },
-    // Biomass N → element
-    { source: 'in_bm',  target: 'el_N', value: MN_bm,  color: '#f97316' },
     // C → outputs
     { source: 'el_C',   target: 'out_bc',  value: MC_bc,  color: '#fbbf24' },
     { source: 'el_C',   target: 'out_co2', value: MC_co2, color: '#f87171' },
@@ -2314,10 +2319,10 @@ function drawElementalSankey(r) {
     { source: 'el_O',   target: 'out_co2', value: MO_co2, color: '#f87171' },
     { source: 'el_O',   target: 'out_h2o', value: MO_h2o, color: '#60a5fa' },
     { source: 'el_O',   target: 'out_o2x', value: MO_o2x, color: '#a78bfa' },
-    { source: 'el_O',   target: 'out_no',  value: r.mNO * (16/30), color: '#f97316' },
-    // N → outputs (50% N2, 50% NO)
-    { source: 'el_N',   target: 'out_n2',  value: MN_n2,  color: '#9ca89a' },
-    { source: 'el_N',   target: 'out_no',  value: r.mNO / 14, color: '#f97316' },
+    { source: 'el_O',   target: 'out_no',  value: MO_no,  color: '#f97316' },
+    // N → outputs
+    { source: 'el_N',   target: 'out_bc',    value: MN_bc,  color: '#fbbf24' },
+    { source: 'el_N',   target: 'out_exhaust_N', value: MN_ex, color: '#9ca89a' },
   ].filter(l => l.value > 0.001);
 
   drawSankey('sk-elemental', nodes, links, 'kmol/h');
