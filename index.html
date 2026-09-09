@@ -1125,11 +1125,8 @@ function calcAt(inp, rc, Tto) {
   // Feed
   const md   = fw * (1 - mc);
   const mw   = fw * mc;
-  // Ash: always track in mass balance; threshold only affects display note
+  // Ash display flag only — rc is applied to total dry mass (literature convention)
   const ash_active = (xash || 0) > 0.01;  // display flag only
-  const x_ash = xash || 0;                 // always use actual ash fraction
-  const m_ash = md * x_ash;
-  const m_org = md * (1 - x_ash);   // combustible / pyrolyzable fraction
 
   // Elemental flows — whole-sample dry basis (xC+xH+xO+xN+xash = 1)
   const mCbm = md * xC;
@@ -1137,9 +1134,15 @@ function calcAt(inp, rc, Tto) {
   const mObm = md * xO;
   const mNbm = md * (xN || 0);
 
-  // Biochar — rc applies to organic fraction only; ash exits with biochar
-  const mbc_org = m_org * rc;
-  const mbc     = mbc_org + m_ash;
+  // Biochar — rc applied to total dry mass (matches literature reporting convention)
+  // Ash is inert and all goes to biochar. Organic char yield = rc - xash.
+  // This keeps rc consistent with literature (kg char / kg dry feed) while
+  // correctly separating organic char from ash in the elemental balance.
+  const x_ash   = xash || 0;
+  const m_ash   = md * x_ash;                   // ash mass — all exits with biochar
+  const rc_org  = Math.max(0, rc - x_ash);      // organic char fraction of dry feed
+  const mbc_org = md * rc_org;                  // organic biochar mass
+  const mbc     = md * rc;                      // total biochar = organic + ash (= md*rc)
   const mCbc    = mbc_org * xCbc;
   const mHbc    = mCbc * rHCm;
   // N in biochar: Option C — user-specified retention fraction
@@ -1149,8 +1152,8 @@ function calcAt(inp, rc, Tto) {
   const mObc    = mbc_org - mCbc - mHbc - mNbc;
   const mNbc_clamped = mNbc < mNbc_raw;  // flag for UI warning
 
-  // Syngas elemental flows
-  const msg  = m_org - mbc_org;
+  // Syngas elemental flows — from organic feed minus organic biochar
+  const msg  = md * (1 - x_ash) - mbc_org;
   const mCsg = mCbm - mCbc;
   const mHsg = mHbm - mHbc;
   const mOsg = mObm - mObc;
@@ -1283,10 +1286,10 @@ function calcAt(inp, rc, Tto) {
 
   return {
     rc, Tto,
-    md, mw, fw, m_ash, m_org, ash_active,
+    md, mw, fw, m_ash, ash_active,
     mCbm, mHbm, mObm, mNbm,
     mbc, mbc_org, mCbc, mHbc, mObc, mNbc, mNbc_clamped,
-    msg, mCsg, mHsg, mOsg, mNsg, sgmc: mw/(mbc_org + (m_org-mbc_org)),
+    msg, mCsg, mHsg, mOsg, mNsg, sgmc: mw/msg,
     mCO2, mH2Oc, mH2Ox, mN2, mO2x, mNO, mN2_fuel,
     mO2_air, mO2n, mO2x, mOsg, mO2n, mair, mexw,
     merr, tin, tout,
@@ -1623,19 +1626,22 @@ function run() {
   // KPIs
   S('k_dry', r.md,  0); S('k_bc',  r.mbc, 0);
   { const ashEl = document.getElementById('k_bc_ash');
-    if (ashEl) ashEl.textContent = r.ash_active && r.mbc > 0
-      ? (r.m_ash / r.mbc * 100).toFixed(0) + '% ash'
-      : ''; }
+    if (ashEl) ashEl.textContent = r.ash_active
+      ? '(ash implicit in rc)'
+      : '';
+  }
   S('k_air', r.mair,0); S('k_ex', r.U1, 0); S('k_rec', r.net_rec, 0);
 
   // Mass
   S('m_fw',r.fw,0); S('m_dry',r.md,1); S('m_wat',r.mw,1); S('m_air',r.mair,1); S('m_in',r.tin,1);
   // Ash rows — show dashes when ash inactive
-  document.getElementById('m_ash_disp').textContent = r.ash_active ? fmt(r.m_ash,1) : '—';
-  document.getElementById('m_org_disp').textContent = r.ash_active ? fmt(r.m_org,1) : '—';
+  const inp_xash = getInp().xash || 0;
+  const m_ash_est = r.m_ash || 0;
+  document.getElementById('m_ash_disp').textContent = r.ash_active ? fmt(m_ash_est,1) : '—';
+  document.getElementById('m_org_disp').textContent = r.ash_active ? fmt(r.md*(1-inp_xash),1) : '—';
   S('m_bc',r.mbc,2);
-  document.getElementById('m_bc_org').textContent = r.ash_active ? fmt(r.mbc_org,1) : '—';
-  document.getElementById('m_bc_ash').textContent = r.ash_active ? fmt(r.m_ash,1) : '—';
+  document.getElementById('m_bc_org').textContent = fmt(r.mbc_org,1);
+  document.getElementById('m_bc_ash').textContent = r.ash_active ? fmt(m_ash_est,1) : '—';
   S('m_Cbc',r.mCbc,2);
   document.getElementById('m_Cseq').textContent = fmt(r.Cseq*100,1);
   S('m_exw',r.mexw,1); S('m_CO2',r.mCO2,1); S('m_H2O',r.mH2Ox,1); S('m_N2',r.mN2,1); S('m_O2x',r.mO2x,1);
@@ -2595,7 +2601,7 @@ function captureScenario(name) {
   sc.solveMode = solveMode;
 
   // Results
-  sc.r_md=r.md; sc.r_mw=r.mw; sc.r_m_ash=r.m_ash||0; sc.r_m_org=r.m_org||r.md;
+  sc.r_md=r.md; sc.r_mw=r.mw; sc.r_m_ash=r.m_ash||0; sc.r_m_org=r.md*(1-(getInp().xash||0));
   sc.r_mair=r.mair; sc.r_mbc=r.mbc; sc.r_mbc_org=r.mbc_org||r.mbc;
   sc.r_mexw=r.mexw; sc.r_mCO2=r.mCO2; sc.r_mH2Ox=r.mH2Ox;
   sc.r_mN2=r.mN2; sc.r_mO2x=r.mO2x; sc.r_Cseq=r.Cseq*100;

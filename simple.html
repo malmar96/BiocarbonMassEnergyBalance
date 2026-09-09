@@ -193,11 +193,11 @@ function Cps(a,b,c,d,Tto,Tr){
 function cal(inp,rc,Tto){
   const{fw,mc,xC,xH,xO,xN,xash,xCbc,rHC,HHVbc,xs,HHVbm,cpBM,cpSG,dH,lossF,hxEff,Tr,Treac,xN_bc_ret}=inp;
   const rHCm=rHC/12, md=fw*(1-mc), mw=fw*mc;
-  const xa=xash||0, ma=md*xa, mo=md*(1-xa);
+  const xa=xash||0, mo=md*(1-xa);  // mo kept for compatibility
   // Whole-sample dry basis elemental flows
   const mCbm=md*xC, mHbm=md*xH, mObm=md*xO, mNbm=md*(xN||0);
   // Biochar
-  const mbo=mo*rc, mb=mbo+ma;
+  const mbo=md*rc, mb=mbo;
   const mCb=mbo*xCbc, mHb=mCb*rHCm;
   const mNb_raw=mNbm*(xN_bc_ret||0.40);
   const mNb=Math.min(mNb_raw, Math.max(0, mbo-mCb-mHb));
