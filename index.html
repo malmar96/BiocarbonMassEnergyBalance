@@ -1133,12 +1133,12 @@ function calcAt(inp, rc, Tto) {
   const mObm = md * xO;
   const mNbm = md * (xN || 0);
 
-  // Biochar — rc applied to total dry mass (matches literature reporting convention)
-  // Ash is inert, all goes to biochar. mbc = mbc_org = md*rc.
+  // Biochar — rc on total dry mass (literature convention). Ash all goes to biochar.
+  // Organic char = total biochar minus ash. xCbc applies to organic char only.
   const x_ash   = xash || 0;
-  const m_ash   = md * x_ash;                   // ash mass (for display)
-  const mbc_org = md * rc;                      // organic biochar = md*rc (spreadsheet convention)
-  const mbc     = mbc_org;                      // total biochar (ash implicit in rc)
+  const m_ash   = md * x_ash;                        // ash mass (all to biochar)
+  const mbc     = md * rc;                           // total biochar (organic + ash)
+  const mbc_org = Math.max(0, mbc - m_ash);         // organic char = md*(rc-xash)
   const mCbc    = mbc_org * xCbc;
   const mHbc    = mCbc * rHCm;
   // N in biochar: Option C — user-specified retention fraction
@@ -1148,8 +1148,8 @@ function calcAt(inp, rc, Tto) {
   const mObc    = mbc_org - mCbc - mHbc - mNbc;
   const mNbc_clamped = mNbc < mNbc_raw;  // flag for UI warning
 
-  // Syngas elemental flows — from organic feed minus organic biochar
-  const msg  = md * (1 - x_ash) - mbc_org;
+  // Syngas elemental flows — organic feed minus organic biochar
+  const msg  = md * (1 - x_ash) - mbc_org;  // = md*(1-rc) when rc >= xash
   const mCsg = mCbm - mCbc;
   const mHsg = mHbm - mHbc;
   const mOsg = mObm - mObc;
