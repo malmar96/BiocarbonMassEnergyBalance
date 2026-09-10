@@ -1125,8 +1125,7 @@ function calcAt(inp, rc, Tto) {
   // Feed
   const md   = fw * (1 - mc);
   const mw   = fw * mc;
-  // Ash display flag only — rc is applied to total dry mass (literature convention)
-  const ash_active = (xash || 0) > 0.01;  // display flag only
+  // Ash always tracked explicitly
 
   // Elemental flows — whole-sample dry basis (xC+xH+xO+xN+xash = 1)
   const mCbm = md * xC;
@@ -1135,14 +1134,11 @@ function calcAt(inp, rc, Tto) {
   const mNbm = md * (xN || 0);
 
   // Biochar — rc applied to total dry mass (matches literature reporting convention)
-  // Ash is inert and all goes to biochar. Organic char yield = rc - xash.
-  // This keeps rc consistent with literature (kg char / kg dry feed) while
-  // correctly separating organic char from ash in the elemental balance.
+  // Ash is inert, all goes to biochar. mbc = mbc_org = md*rc.
   const x_ash   = xash || 0;
-  const m_ash   = md * x_ash;                   // ash mass — all exits with biochar
-  const rc_org  = Math.max(0, rc - x_ash);      // organic char fraction of dry feed
-  const mbc_org = md * rc_org;                  // organic biochar mass
-  const mbc     = md * rc;                      // total biochar = organic + ash (= md*rc)
+  const m_ash   = md * x_ash;                   // ash mass (for display)
+  const mbc_org = md * rc;                      // organic biochar = md*rc (spreadsheet convention)
+  const mbc     = mbc_org;                      // total biochar (ash implicit in rc)
   const mCbc    = mbc_org * xCbc;
   const mHbc    = mCbc * rHCm;
   // N in biochar: Option C — user-specified retention fraction
@@ -1286,7 +1282,7 @@ function calcAt(inp, rc, Tto) {
 
   return {
     rc, Tto,
-    md, mw, fw, m_ash, ash_active,
+    md, mw, fw, m_ash,
     mCbm, mHbm, mObm, mNbm,
     mbc, mbc_org, mCbc, mHbc, mObc, mNbc, mNbc_clamped,
     msg, mCsg, mHsg, mOsg, mNsg, sgmc: mw/msg,
@@ -1626,9 +1622,7 @@ function run() {
   // KPIs
   S('k_dry', r.md,  0); S('k_bc',  r.mbc, 0);
   { const ashEl = document.getElementById('k_bc_ash');
-    if (ashEl) ashEl.textContent = r.ash_active
-      ? '(ash implicit in rc)'
-      : '';
+    if (ashEl) ashEl.textContent = r.m_ash > 0.01 ? fmt(r.m_ash,1) + ' kg/h ash' : '';
   }
   S('k_air', r.mair,0); S('k_ex', r.U1, 0); S('k_rec', r.net_rec, 0);
 
@@ -1637,11 +1631,11 @@ function run() {
   // Ash rows — show dashes when ash inactive
   const inp_xash = getInp().xash || 0;
   const m_ash_est = r.m_ash || 0;
-  document.getElementById('m_ash_disp').textContent = r.ash_active ? fmt(m_ash_est,1) : '—';
-  document.getElementById('m_org_disp').textContent = r.ash_active ? fmt(r.md*(1-inp_xash),1) : '—';
+  document.getElementById('m_ash_disp').textContent = fmt(m_ash_est,1);
+  document.getElementById('m_org_disp').textContent = fmt(r.md*(1-inp_xash),1);
   S('m_bc',r.mbc,2);
   document.getElementById('m_bc_org').textContent = fmt(r.mbc_org,1);
-  document.getElementById('m_bc_ash').textContent = r.ash_active ? fmt(m_ash_est,1) : '—';
+  document.getElementById('m_bc_ash').textContent = fmt(m_ash_est,1);
   S('m_Cbc',r.mCbc,2);
   document.getElementById('m_Cseq').textContent = fmt(r.Cseq*100,1);
   S('m_exw',r.mexw,1); S('m_CO2',r.mCO2,1); S('m_H2O',r.mH2Ox,1); S('m_N2',r.mN2,1); S('m_O2x',r.mO2x,1);
