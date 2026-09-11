@@ -1,19 +1,19 @@
 // calc.test.js - Regression tests for pyrolysis mass & energy balance
 // Extracts calculation logic directly from index.html -- single source of truth.
 // Run with: node calc.test.js
-
+ 
 const fs   = require('fs');
 const path = require('path');
 const vm   = require('vm');
-
+ 
 // Load and evaluate the math from index.html
 const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
-
+ 
 // Extract the inline script by finding the app script block directly
 const scriptStart = html.indexOf('<script>\n\n// ── CONSTANTS');
 const scriptEnd   = html.indexOf('\n</script>', scriptStart);
 let code = html.slice(scriptStart + 8, scriptEnd);
-
+ 
 // Stub out DOM/UI so math functions load cleanly
 code = code
   .replace(/const g\s*=\s*id\s*=>[^;]+;/g,  'const g = () => 0;')
@@ -25,8 +25,8 @@ code = code
   .replace(/^run\(\);\s*$/mg,                  '// run();')
   .replace(/initTheme\(\);\s*/g,               '')
   .replace(/document\.getElementById\((['"])i_feedstock\1\)\.addEventListener[^;]+;/g, '// stripped');
-
-
+ 
+ 
 const domStub = {
   getElementById: () => ({ textContent:'', style:{}, classList:{add:()=>{},remove:()=>{},toggle:()=>{}}, value:'0', readOnly:false, innerHTML:'' }),
   querySelector:  () => ({ innerHTML:'', textContent:'', className:'' }),
@@ -46,13 +46,13 @@ try {
   console.error('ERROR evaluating index.html:', e.message);
   process.exit(1);
 }
-
+ 
 const { calcAt, solveTto, solveRc, solveRcForTtoMin,
         Cp_N2, Cp_CO2, Cp_H2O_g, Cp_O2, Cp_air_mix } = sandbox;
 const N_AIR = 79/21, T_ADP = 150, T_COND = 100;
-
+ 
 console.log('Loaded math from index.html\n');
-
+ 
 // Test helpers
 let passed = 0, failed = 0;
 function assert(desc, ok, detail) {
@@ -63,7 +63,7 @@ function assertClose(desc, actual, expected, tol) {
   assert(desc, Math.abs(actual - expected) <= tol,
     'got ' + actual.toFixed(6) + ', expected ' + expected + ' +/- ' + tol);
 }
-
+ 
 // Baseline inputs: hardwood 13% MC, whole-sample dry basis (xC+xH+xO+xN+xash=1)
 // All feedstock compositions: xC+xH+xO+xN+xash = 1.0 exactly (whole-sample dry basis)
 const BASE = {
@@ -84,7 +84,7 @@ const FEEDSTOCKS = [
       xC:0.3500, xH:0.0550, xO:0.1650, xN:0.0500, xash:0.3800,  // sum=1.0000
       xN_bc_ret:0.55, HHVbm:14000, rc:0.45} },
 ];
-
+ 
 // 1. Energy balance closure
 console.log('1. Energy balance closure');
 {
@@ -96,7 +96,7 @@ FEEDSTOCKS.forEach(({name, inp}) => {
   const r = calcAt(inp, inp.rc, solveTto(inp, inp.rc));
   assertClose('T23 closes to zero (' + name + ')', r.T23, 0, 0.001);
 });
-
+ 
 // 2. Mass balance closure
 console.log('\n2. Mass balance closure');
 assertClose('Mass in = mass out (hardwood baseline)',
@@ -105,7 +105,7 @@ FEEDSTOCKS.forEach(({name, inp}) => {
   assertClose('Mass in = mass out (' + name + ')',
     calcAt(inp, inp.rc, solveTto(inp, inp.rc)).merr, 0, 0.01);
 });
-
+ 
 // 3. Moisture sensitivity direction
 console.log('\n3. Moisture sensitivity direction');
 {
@@ -122,7 +122,7 @@ console.log('\n3. Moisture sensitivity direction');
       res[i].Tto < res[i-1].Tto, res[i].Tto.toFixed(1) + ' < ' + res[i-1].Tto.toFixed(1));
   }
 }
-
+ 
 // 4. Feasibility detection
 console.log('\n4. Feasibility detection');
 {
@@ -134,14 +134,14 @@ console.log('\n4. Feasibility detection');
   const Tto_h = solveTto(BASE, BASE.rc);
   assert('Hardwood 13% MC: T_TO above floor', Tto_h >= BASE.Tto_min, 'T_TO=' + Tto_h.toFixed(1));
 }
-
+ 
 // 5. Carbon sequestration bounds
 console.log('\n5. Carbon sequestration bounds');
 FEEDSTOCKS.concat([{name:'Hardwood baseline', inp:BASE}]).forEach(({name, inp}) => {
   const r = calcAt(inp, inp.rc, solveTto(inp, inp.rc));
   assert('Cseq in [0,1] (' + name + ')', r.Cseq >= 0 && r.Cseq <= 1, 'Cseq=' + r.Cseq.toFixed(3));
 });
-
+ 
 // 6. T11 sign check
 console.log('\n6. T11 (biochar HHV) sign check');
 {
@@ -149,13 +149,13 @@ console.log('\n6. T11 (biochar HHV) sign check');
   assert('T11 > 0 when rc > 0', calcAt(BASE, 0.25, Tto).T11 > 0);
   assert('T11 = 0 when rc = 0', Math.abs(calcAt(BASE, 0, Tto).T11) < 0.001);
 }
-
+ 
 // 7. Constants
 console.log('\n7. Constants');
 assertClose('N_AIR = 79/21', N_AIR, 79/21, 1e-10);
 assertClose('T_ADP = 150',   T_ADP, 150, 0);
 assertClose('T_COND = 100',  T_COND, 100, 0);
-
+ 
 // 8. RC solve mode closure
 console.log('\n8. RC solve mode');
 {
@@ -164,7 +164,7 @@ console.log('\n8. RC solve mode');
   assert('Solved rc < 1', rc < 1, 'rc=' + rc.toFixed(4));
   assertClose('T23 closes in RC mode', calcAt(BASE, rc, 720).T23, 0, 10.0);
 }
-
+ 
 // 9. Option A remedy: rc* in [0,1] gives T_TO = Tto_min
 console.log('\n9. Option A remedy (rc* solve)');
 {
@@ -186,7 +186,7 @@ console.log('\n9. Option A remedy (rc* solve)');
   assert('rc* < 0 for sludge 40% MC (Option A not feasible)',
     solveRcForTtoMin(sl40, sl40.Tto_min) < 0);
 }
-
+ 
 // 10. Shomate Cp correctness (JANAF reference values)
 console.log('\n10. Shomate Cp correctness');
 assertClose('Cp_N2   at  25C', Cp_N2(25),       0.99497, 0.00005);
@@ -205,7 +205,7 @@ assertClose('Cp_air at  25C', Cp_air_mix(25),  0.97717, 0.00005);
 assertClose('Cp_air at 300C', Cp_air_mix(300), 1.05461, 0.00005);
 assertClose('Cp_air = 0.232*O2+0.768*N2 at 500C',
   Cp_air_mix(500), 0.232*Cp_O2(500)+0.768*Cp_N2(500), 0.00001);
-
+ 
 // 11. Exhaust fractions sum to 1 (wet basis, including NO)
 console.log('\n11. Exhaust composition fractions sum to 1');
 FEEDSTOCKS.concat([{name:'Hardwood baseline', inp:BASE}]).forEach(({name, inp}) => {
@@ -223,7 +223,7 @@ FEEDSTOCKS.concat([{name:'Hardwood baseline', inp:BASE}]).forEach(({name, inp}) 
     r.xCO2+r.xH2O+r.xN2+r.xO2 <= 1.0001,
     (r.xCO2+r.xH2O+r.xN2+r.xO2).toFixed(4));
 });
-
+ 
 // Summary
 console.log('\n==================================================');
 console.log('Results: ' + passed + ' passed, ' + failed + ' failed');
