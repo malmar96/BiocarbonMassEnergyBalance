@@ -200,8 +200,9 @@ function cal(inp,rc,Tto){
   const mbo=md*rc, mb=mbo;
   const mCb=mbo*xCbc, mHb=mCb*rHCm;
   const mNb_raw=mNbm*(xN_bc_ret||0.40);
-  const mNb=Math.min(mNb_raw, Math.max(0, mbo-mCb-mHb));
-  const mOb=mbo-mCb-mHb-mNb;
+  const space_b=mbo-mCb-mHb;
+  const mNb=Math.min(mNb_raw, space_b*0.5);
+  const mOb=space_b-mNb;
   // Syngas
   const msg=mo-mbo;
   const mCs=mCbm-mCb, mHs=mHbm-mHb, mOs=mObm-mOb, mNs=mNbm-mNb;

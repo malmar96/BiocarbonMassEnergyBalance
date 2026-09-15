@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
@@ -785,16 +786,16 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="dot blue"></span>Export Scenarios to CSV</div>
+        <div class="card-header"><span class="dot blue"></span>Export Scenarios</div>
         <div class="card-body">
           <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
-            Exports all saved scenarios side by side — inputs, mass flows, energy balance, and exhaust recovery terms.
+            Exports all saved scenarios as an Excel workbook — one sheet per scenario, with run info, feedstock inputs, elemental mass and molar flows, and a fully labelled energy balance.
           </div>
-          <button onclick="exportCSV()"
+          <button onclick="exportXLSX()"
             style="padding:6px 16px;background:var(--bg4);border:1px solid var(--border2);
                    border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;
                    font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">
-            Download CSV
+            ↓ Download XLSX
           </button>
         </div>
       </div>
@@ -1144,9 +1145,10 @@ function calcAt(inp, rc, Tto) {
   // N in biochar: Option C — user-specified retention fraction
   const f_Nbc   = Math.min(1, Math.max(0, xN_bc_ret || 0.40));
   const mNbc_raw = mNbm * f_Nbc;
-  const mNbc    = Math.min(mNbc_raw, Math.max(0, mbc_org - mCbc - mHbc));  // clamp so mObc >= 0
-  const mObc    = mbc_org - mCbc - mHbc - mNbc;
-  const mNbc_clamped = mNbc < mNbc_raw;  // flag for UI warning
+  const space    = mbc_org - mCbc - mHbc;           // mass available after C and H
+  const mNbc     = Math.min(mNbc_raw, space * 0.5); // cap N at 50% of space if needed
+  const mObc     = space - mNbc;                    // O gets the remainder (≥ 50% of space)
+  const mNbc_clamped = mNbc < mNbc_raw;             // flag for UI warning
 
   // Syngas elemental flows — organic feed minus organic biochar
   const msg  = md * (1 - x_ash) - mbc_org;  // = md*(1-rc) when rc >= xash
@@ -1257,7 +1259,7 @@ function calcAt(inp, rc, Tto) {
   const ab_C_ex   = (12/44)*mCO2;
   const ab_H_ex   = (2/18)*mH2Ox;
   const ab_O_ex   = (32/44)*mCO2 + (16/18)*mH2Ox + mO2x + (16/30)*mNO;
-  const ab_N_ex   = mN2 + mNO;    // N₂ (atm + fuel) + NO
+  const ab_N_ex   = mN2 + mNO * (14/30);    // N₂ (all N) + N atoms in NO (14/30 of NO mass)
 
   // Totals out and residuals
   const ab_C_out  = ab_C_bc + ab_C_ex;
@@ -2607,6 +2609,32 @@ function captureScenario(name) {
   sc.r_T21=r.T21; sc.r_T23=r.T23; sc.r_Q_supp=r.Q_supp||0;
   sc.r_U1=r.U1; sc.r_above_adp=r.above_adp; sc.r_acid_zone=r.acid_zone;
   sc.r_latent=r.latent; sc.r_non_rec=r.non_rec; sc.r_rpct=r.rpct*100;
+  sc.r_net_rec=r.net_rec; sc.r_hx_loss=r.hx_loss;
+  // Elemental mass flows (kg/h)
+  sc.e_C_bm=r.ab_C_bm; sc.e_H_bm=r.ab_H_bm; sc.e_O_bm=r.ab_O_bm; sc.e_N_bm=r.ab_N_bm; sc.e_ash_bm=r.m_ash||0;
+  sc.e_H_fw=(2/18)*(r.mw||0); sc.e_O_fw=(16/18)*(r.mw||0);
+  sc.e_O_air=r.ab_O_air; sc.e_N_air=r.ab_N_air;
+  sc.e_C_bc=r.mCbc; sc.e_H_bc=r.mHbc; sc.e_O_bc=r.mObc; sc.e_N_bc=r.mNbc; sc.e_ash_bc=r.m_ash||0;
+  sc.e_C_ex=r.ab_C_ex; sc.e_H_ex=r.ab_H_ex; sc.e_O_ex=r.ab_O_ex; sc.e_N_ex=r.ab_N_ex;
+  // Elemental molar flows (kmol/h)
+  sc.m_C_bm=r.ab_C_bm_m; sc.m_H_bm=r.ab_H_bm_m; sc.m_O_bm=r.ab_O_bm_m; sc.m_N_bm=r.ab_N_bm_m;
+  sc.m_H_fw=r.ab_H_fw_m; sc.m_O_fw=r.ab_O_fw_m;
+  sc.m_O_air=r.ab_O_air_m; sc.m_N_air=r.ab_N_air_m;
+  sc.m_C_bc=r.ab_C_bc_m; sc.m_H_bc=r.ab_H_bc_m; sc.m_O_bc=r.ab_O_bc_m; sc.m_N_bc=r.ab_N_bc_m;
+  sc.m_C_ex=r.ab_C_ex_m; sc.m_H_ex=r.ab_H_ex_m; sc.m_O_ex=r.ab_O_ex_m; sc.m_N_ex=r.ab_N_ex_m;
+  sc.r_net_rec=r.net_rec; sc.r_hx_loss=r.hx_loss;
+  // Elemental mass flows (kg/h)
+  sc.e_C_bm=r.ab_C_bm; sc.e_H_bm=r.ab_H_bm; sc.e_O_bm=r.ab_O_bm; sc.e_N_bm=r.ab_N_bm; sc.e_ash_bm=r.m_ash||0;
+  sc.e_H_fw=(2/18)*(r.mw||0); sc.e_O_fw=(16/18)*(r.mw||0);
+  sc.e_O_air=r.ab_O_air; sc.e_N_air=r.ab_N_air;
+  sc.e_C_bc=r.mCbc; sc.e_H_bc=r.mHbc; sc.e_O_bc=r.mObc; sc.e_N_bc=r.mNbc; sc.e_ash_bc=r.m_ash||0;
+  sc.e_C_ex=r.ab_C_ex; sc.e_H_ex=r.ab_H_ex; sc.e_O_ex=r.ab_O_ex; sc.e_N_ex=r.ab_N_ex;
+  // Elemental molar flows (kmol/h)
+  sc.m_C_bm=r.ab_C_bm_m; sc.m_H_bm=r.ab_H_bm_m; sc.m_O_bm=r.ab_O_bm_m; sc.m_N_bm=r.ab_N_bm_m; sc.m_ash_bm=(r.m_ash||0)/60;
+  sc.m_H_fw=r.ab_H_fw_m; sc.m_O_fw=r.ab_O_fw_m;
+  sc.m_O_air=r.ab_O_air_m; sc.m_N_air=r.ab_N_air_m;
+  sc.m_C_bc=r.ab_C_bc_m; sc.m_H_bc=r.ab_H_bc_m; sc.m_O_bc=r.ab_O_bc_m; sc.m_N_bc=r.ab_N_bc_m;
+  sc.m_C_ex=r.ab_C_ex_m; sc.m_H_ex=r.ab_H_ex_m; sc.m_O_ex=r.ab_O_ex_m; sc.m_N_ex=r.ab_N_ex_m;
   return sc;
 }
 
@@ -2687,15 +2715,22 @@ function renderScenariosTable() {
 
   // Key rows to show in preview table (subset for readability)
   const preview = [
-    {k:'feedstock',   l:'Feedstock'},
-    {k:'mc',          l:'Moisture'},
-    {k:'r_Tto',       l:'T_TO (°C)'},
-    {k:'r_T1',        l:'HHV in (kW)'},
-    {k:'r_mbc',       l:'Biochar (kg/h)'},
-    {k:'r_U1',        l:'Exhaust heat (kW)'},
-    {k:'r_above_adp', l:'Recoverable (kW)'},
-    {k:'r_rpct',      l:'Recovery (%)'},
-    {k:'r_Q_supp',    l:'Q_supp (kW)'},
+    {k:'feedstock',    l:'Feedstock'},
+    {k:'solveMode',    l:'Solve mode'},
+    {k:'mc',           l:'Moisture'},
+    {k:'rc',           l:'Conversion rate'},
+    {k:'r_Tto',        l:'T_TO (°C)'},
+    {k:'r_T1',         l:'HHV biomass input (kW)'},
+    {k:'r_Q_supp',     l:'Supplemental heat input (kW)'},
+    {k:'r_mbc',        l:'Total biochar (kg/h)'},
+    {k:'r_mbc_org',    l:'Organic char (kg/h)'},
+    {k:'r_mair',       l:'Air intake (kg/h)'},
+    {k:'r_mexw',       l:'Wet exhaust (kg/h)'},
+    {k:'r_U1',         l:'Total exhaust enthalpy (kW)'},
+    {k:'r_above_adp',  l:'Recoverable heat W19 (kW)'},
+    {k:'r_net_rec',    l:'Net delivered heat (kW)'},
+    {k:'r_rpct',       l:'Recovery fraction (%)'},
+    {k:'r_Cseq',       l:'Carbon sequestered (%)'},
   ];
 
   const thStyle = `font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
@@ -2750,46 +2785,114 @@ function renderScenariosTable() {
   tbl.innerHTML = html;
 }
 
-function exportCSV() {
+function exportXLSX() {
   const scs = loadScenarios();
   if (!scs.length) {
     document.getElementById('scenario-save-msg').textContent = 'No scenarios to export.';
     return;
   }
-  const fields = scenarioFields();
-  // Header rows: section + label
-  const sections = fields.map(f => f.s);
-  const labels   = fields.map(f => f.l);
-  const rows = [
-    ['Section', ...scs.map(s => s.name)],
-    ['Timestamp', ...scs.map(s => new Date(s.timestamp).toLocaleString())],
-    ['', ...scs.map(() => '')],  // blank spacer
-    ...fields.map(f => [
-      f.l,
-      ...scs.map(sc => {
-        const v = sc[f.k];
-        if (v == null) return '';
-        if (typeof v === 'number') return v.toFixed(4);
-        return String(v);
-      })
-    ])
-  ];
 
-  const csv = rows.map(row =>
-    row.map(cell => {
-      const s = String(cell);
-      return s.includes(',') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g,'""')}"` : s;
-    }).join(',')
-  ).join('\n');
+  const wb = XLSX.utils.book_new();
 
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = `pyrolysis_scenarios_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  scs.forEach(sc => {
+    const rows = [];
+    const n = v => (v == null ? '' : typeof v === 'number' ? +v.toFixed(4) : v);
+    const pct = v => v == null ? '' : +(v).toFixed(2) + '%';
+
+    // ── SECTION 1: Run info ──
+    rows.push(['RUN INFO', '']);
+    rows.push(['Scenario',          sc.name]);
+    rows.push(['Date',              new Date(sc.timestamp).toLocaleString()]);
+    rows.push(['Feedstock',         sc.feedstock || '']);
+    rows.push(['Solve mode',        sc.solveMode || '']);
+    rows.push(['T_TO solved',       n(sc.r_Tto),       '°C']);
+    rows.push(['Conversion rate',   n(sc.rc),           '—']);
+    rows.push(['Excess O₂ (dry mol frac)', n(sc.xs),   '—']);
+    rows.push(['HX efficiency',     n(sc.hxEff),       '—']);
+    rows.push(['Q_supp',            n(sc.r_Q_supp),    'kW']);
+    rows.push([]);
+
+    // ── SECTION 2: Feedstock inputs ──
+    rows.push(['FEEDSTOCK INPUTS', '']);
+    rows.push(['Wet feed rate',     n(sc.fw),           'kg/h']);
+    rows.push(['Moisture fraction', n(sc.mc),           '—']);
+    rows.push(['C (dry whole-sample)', n(sc.xC),       '—']);
+    rows.push(['H (dry whole-sample)', n(sc.xH),       '—']);
+    rows.push(['O (dry whole-sample)', n(sc.xO),       '—']);
+    rows.push(['N (dry whole-sample)', n(sc.xN),       '—']);
+    rows.push(['Ash fraction (dry)', n(sc.xash),       '—']);
+    rows.push(['N retention in biochar', n(sc.xN_bc_ret || 0.40), '—']);
+    rows.push(['HHV biomass',       n(sc.HHVbm),       'kJ/kg dry']);
+    rows.push(['C fraction in biochar (organic)', n(sc.xCbc), '—']);
+    rows.push(['Molar H:C biochar', n(sc.rHC),         '—']);
+    rows.push(['HHV biochar',       n(sc.HHVbc),       'kJ/kg organic']);
+    rows.push(['Pyrolysis ΔH_rxn',  n(sc.dH),          'kJ/kg dry']);
+    rows.push(['Reactor loss fraction', n(sc.lossF),   '—']);
+    rows.push(['T_ref',             n(sc.Tr),           '°C']);
+    rows.push(['T_reactor',         n(sc.Treac),        '°C']);
+    rows.push(['T_TO minimum',      n(sc.Tto_min),      '°C']);
+    rows.push([]);
+
+    // ── SECTION 3: Elemental mass flows ──
+    rows.push(['ELEMENTAL MASS FLOWS', 'kg/h', '', '', '', '', '']);
+    rows.push(['Element', 'Biomass', 'Feed H₂O', 'Air', '→ Biochar', '→ Exhaust', 'Residual']);
+    rows.push(['C',  n(sc.e_C_bm), 0,              0,              n(sc.e_C_bc),  n(sc.e_C_ex),  n((sc.e_C_bm||0)-(sc.e_C_bc||0)-(sc.e_C_ex||0))]);
+    rows.push(['H',  n(sc.e_H_bm), n(sc.e_H_fw),   0,              n(sc.e_H_bc),  n(sc.e_H_ex),  n((sc.e_H_bm||0)+(sc.e_H_fw||0)-(sc.e_H_bc||0)-(sc.e_H_ex||0))]);
+    rows.push(['O',  n(sc.e_O_bm), n(sc.e_O_fw),   n(sc.e_O_air),  n(sc.e_O_bc),  n(sc.e_O_ex),  n((sc.e_O_bm||0)+(sc.e_O_fw||0)+(sc.e_O_air||0)-(sc.e_O_bc||0)-(sc.e_O_ex||0))]);
+    rows.push(['N',  n(sc.e_N_bm), 0,              n(sc.e_N_air),  n(sc.e_N_bc),  n(sc.e_N_ex),  n((sc.e_N_bm||0)+(sc.e_N_air||0)-(sc.e_N_bc||0)-(sc.e_N_ex||0))]);
+    rows.push(['Ash',n(sc.e_ash_bm),0,             0,              n(sc.e_ash_bc), 0,             0]);
+    rows.push([]);
+
+    // ── SECTION 4: Elemental molar flows ──
+    rows.push(['ELEMENTAL MOLAR FLOWS', 'kmol/h', '', '', '', '', '']);
+    rows.push(['Element', 'Biomass', 'Feed H₂O', 'Air', '→ Biochar', '→ Exhaust', 'Residual']);
+    rows.push(['C',  n(sc.m_C_bm), 0,              0,              n(sc.m_C_bc),  n(sc.m_C_ex),  n((sc.m_C_bm||0)-(sc.m_C_bc||0)-(sc.m_C_ex||0))]);
+    rows.push(['H',  n(sc.m_H_bm), n(sc.m_H_fw),   0,              n(sc.m_H_bc),  n(sc.m_H_ex),  n((sc.m_H_bm||0)+(sc.m_H_fw||0)-(sc.m_H_bc||0)-(sc.m_H_ex||0))]);
+    rows.push(['O',  n(sc.m_O_bm), n(sc.m_O_fw),   n(sc.m_O_air),  n(sc.m_O_bc),  n(sc.m_O_ex),  n((sc.m_O_bm||0)+(sc.m_O_fw||0)+(sc.m_O_air||0)-(sc.m_O_bc||0)-(sc.m_O_ex||0))]);
+    rows.push(['N',  n(sc.m_N_bm), 0,              n(sc.m_N_air),  n(sc.m_N_bc),  n(sc.m_N_ex),  n((sc.m_N_bm||0)+(sc.m_N_air||0)-(sc.m_N_bc||0)-(sc.m_N_ex||0))]);
+    rows.push([]);
+
+    // ── SECTION 5: Energy balance ──
+    rows.push(['ENERGY BALANCE', 'kW', 'Sign']);
+    rows.push(['— SOURCES —', '', '']);
+    rows.push(['HHV biomass input',                    n(sc.r_T1),      '+']);
+    if ((sc.r_Q_supp || 0) > 0.01)
+      rows.push(['Supplemental heat input',            n(sc.r_Q_supp),  '+']);
+    rows.push(['— SINKS: Process demand —', '', '']);
+    rows.push(['Sensible heat — water to 100°C',       n(-(sc.r_T5||0)),  '−']);
+    rows.push(['Latent heat — water vaporisation',     n(-(sc.r_T6||0)),  '−']);
+    rows.push(['Sensible heat — steam to reactor',     n(-(sc.r_T7||0)),  '−']);
+    rows.push(['Sensible heat — dry biomass to reactor', n(-(sc.r_T9||0)), '−']);
+    rows.push(['Pyrolysis reaction enthalpy',          n(-(sc.r_T10||0)), '−']);
+    rows.push(['Reactor thermal losses',               n(-(sc.r_T_loss||0)), '−']);
+    rows.push(['— SINKS: Products leaving system —', '', '']);
+    rows.push(['Chemical energy in biochar (HHV)',     n(-(sc.r_T11||0)), '−']);
+    rows.push(['Sensible heat in biochar',             n(-(sc.r_T12||0)), '−']);
+    rows.push(['Sensible heat in syngas',              n(-(sc.r_T13||0)), '−']);
+    rows.push(['Sensible heat in combustion air',      n(-(sc.r_T14||0)), '−']);
+    rows.push(['— EXHAUST HEAT CASCADE —', '', '']);
+    rows.push(['Total exhaust enthalpy',               n(sc.r_U1),       '']);
+    rows.push(['Recoverable heat (above acid dew point)', n(sc.r_above_adp), '']);
+    rows.push(['HX losses',                            n(-(sc.r_hx_loss||0)), '−']);
+    rows.push(['Net delivered heat',                   n(sc.r_net_rec),  '']);
+    rows.push(['Below acid dew point (150→100°C)',     n(-(sc.r_acid_zone||0)), '−']);
+    rows.push(['Latent heat of water condensation',    n(-(sc.r_latent||0)), '−']);
+    rows.push(['Below 100°C (sensible)',               n(-(sc.r_non_rec||0-(sc.r_acid_zone||0)-(sc.r_latent||0))), '−']);
+    rows.push([]);
+    rows.push(['Carbon sequestered',                   pct(sc.r_Cseq),   '% of feedstock C']);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // Column widths
+    ws['!cols'] = [{wch:40},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
+
+    // Safe sheet name (max 31 chars, no special chars)
+    const sheetName = (sc.name || 'Scenario').replace(/[\/\\?\*\[\]:]/g,'').slice(0,31);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `HOTMESS_results_${date}.xlsx`);
 }
 
 function T(name) {
